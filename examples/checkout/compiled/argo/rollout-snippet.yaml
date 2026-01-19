@@ -1,0 +1,17 @@
+# This is only a snippet illustrating how the generated AnalysisTemplate could be referenced.
+# Merge into a full Argo Rollouts Rollout resource.
+
+spec:
+  strategy:
+    canary:
+      steps:
+        - setWeight: 10
+        - pause: {duration: 5m}
+        - analysis:
+            templates:
+              - templateName: emac-checkout-slo-gate
+        - setWeight: 50
+        - pause: {duration: 10m}
+        - analysis:
+            templates:
+              - templateName: emac-checkout-slo-gate

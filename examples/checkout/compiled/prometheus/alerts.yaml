@@ -1,0 +1,51 @@
+# Multiwindow, multi-burn-rate alerts for the checkout journey.
+#
+# This follows the SRE Workbook approach: alert only when the long and short windows
+# both exceed the burn-rate threshold (reduces false positives / improves reset time).
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: emac-checkout-alerts
+  labels:
+    emac.example: "true"
+spec:
+  groups:
+    - name: emac.checkout.slo-alerts
+      rules:
+        # Journey availability objective:
+        #   target = 0.995  => error_budget = 1 - target = 0.005
+        # Burn-rate threshold for a given window is: burnRate * error_budget.
+        - alert: CheckoutErrorBudgetBurnTooFast
+          expr: |
+            (
+              (journey:checkout:slo_errors_per_request:ratio_rate1h > (14.4 * 0.005))
+              and
+              (journey:checkout:slo_errors_per_request:ratio_rate5m > (14.4 * 0.005))
+            )
+            or
+            (
+              (journey:checkout:slo_errors_per_request:ratio_rate6h > (6 * 0.005))
+              and
+              (journey:checkout:slo_errors_per_request:ratio_rate30m > (6 * 0.005))
+            )
+          labels:
+            severity: page
+            slo: checkout
+          annotations:
+            summary: "Checkout is burning error budget too fast (page)"
+            description: "Multiwindow burn-rate paging condition met for checkout journey SLO."
+
+        - alert: CheckoutErrorBudgetBurnSustained
+          expr: |
+            (
+              (journey:checkout:slo_errors_per_request:ratio_rate3d > (1 * 0.005))
+              and
+              (journey:checkout:slo_errors_per_request:ratio_rate6h > (1 * 0.005))
+            )
+          labels:
+            severity: ticket
+            slo: checkout
+          annotations:
+            summary: "Checkout is burning error budget (ticket)"
+            description: "Sustained burn suggests the 30-day budget may be exhausted if not addressed."

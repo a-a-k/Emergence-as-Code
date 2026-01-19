@@ -1,0 +1,32 @@
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: slo.front.availability
+spec:
+  service: front
+  indicator:
+    metadata:
+      name: sli.front.success
+    spec:
+      ratioMetric:
+        counter: true
+        good:
+          metricSource:
+            type: Prometheus
+            metricSourceRef: prometheus-datasource
+            spec:
+              query: |
+                sum(increase(http_requests_total{service="front",code=~"2..|3.."}[30d]))
+        total:
+          metricSource:
+            type: Prometheus
+            metricSourceRef: prometheus-datasource
+            spec:
+              query: |
+                sum(increase(http_requests_total{service="front"}[30d]))
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - target: 0.9995

@@ -1,0 +1,47 @@
+# Recording rules for the checkout journey SLI.
+# These are designed to support burn-rate alerting and rollout gating.
+#
+# Assumed raw metrics (illustrative):
+#   journey_requests_total{journey="checkout",result="success"}
+#   journey_requests_total{journey="checkout"}
+#   journey_latency_seconds_bucket{journey="checkout",le="..."}
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: emac-checkout-recording-rules
+  labels:
+    emac.example: "true"
+spec:
+  groups:
+    - name: emac.checkout.sli
+      rules:
+        # Helper: total and good request rates (used by error ratio).
+        - record: journey:checkout:requests:rate5m
+          expr: sum(rate(journey_requests_total{journey="checkout"}[5m]))
+        - record: journey:checkout:good_requests:rate5m
+          expr: sum(rate(journey_requests_total{journey="checkout",result="success"}[5m]))
+
+        # Error ratio over multiple windows (ratio of bad/total).
+        - record: journey:checkout:slo_errors_per_request:ratio_rate5m
+          expr: 1 - (sum(rate(journey_requests_total{journey="checkout",result="success"}[5m])) / sum(rate(journey_requests_total{journey="checkout"}[5m])))
+        - record: journey:checkout:slo_errors_per_request:ratio_rate30m
+          expr: 1 - (sum(rate(journey_requests_total{journey="checkout",result="success"}[30m])) / sum(rate(journey_requests_total{journey="checkout"}[30m])))
+        - record: journey:checkout:slo_errors_per_request:ratio_rate1h
+          expr: 1 - (sum(rate(journey_requests_total{journey="checkout",result="success"}[1h])) / sum(rate(journey_requests_total{journey="checkout"}[1h])))
+        - record: journey:checkout:slo_errors_per_request:ratio_rate2h
+          expr: 1 - (sum(rate(journey_requests_total{journey="checkout",result="success"}[2h])) / sum(rate(journey_requests_total{journey="checkout"}[2h])))
+        - record: journey:checkout:slo_errors_per_request:ratio_rate6h
+          expr: 1 - (sum(rate(journey_requests_total{journey="checkout",result="success"}[6h])) / sum(rate(journey_requests_total{journey="checkout"}[6h])))
+        - record: journey:checkout:slo_errors_per_request:ratio_rate24h
+          expr: 1 - (sum(rate(journey_requests_total{journey="checkout",result="success"}[24h])) / sum(rate(journey_requests_total{journey="checkout"}[24h])))
+        - record: journey:checkout:slo_errors_per_request:ratio_rate3d
+          expr: 1 - (sum(rate(journey_requests_total{journey="checkout",result="success"}[3d])) / sum(rate(journey_requests_total{journey="checkout"}[3d])))
+
+        # P99 latency (histogram-based) over a short operational window.
+        - record: journey:checkout:latency_seconds:p99_5m
+          expr: |
+            histogram_quantile(
+              0.99,
+              sum(rate(journey_latency_seconds_bucket{journey="checkout"}[5m])) by (le)
+            )

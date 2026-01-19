@@ -1,0 +1,83 @@
+apiVersion: emac.dev/v1alpha1
+kind: DiscoveredJourneyModel
+metadata:
+  name: checkout
+  labels:
+    emac.example: "true"
+    journey: checkout
+spec:
+  # This file illustrates what a discovery pipeline might output.
+  # It is treated as evidence input to the EmaC compiler/controller.
+
+  confidence:
+    overall: 0.78
+    notes:
+      - "Traces sampled at 10%" 
+      - "Mesh routing detected for paya/payb" 
+
+  topology:
+    nodes:
+      - id: front
+        type: service
+        labels:
+          k8s.namespace: shop
+          k8s.app: front
+          k8s.zone: us-east-1a
+      - id: cart
+        type: service
+        labels:
+          k8s.namespace: shop
+          k8s.app: cart
+          k8s.zone: us-east-1a
+      - id: pricing
+        type: service
+        labels:
+          k8s.namespace: shop
+          k8s.app: pricing
+          k8s.zone: us-east-1a
+      - id: paya
+        type: external
+        labels:
+          provider: paya
+          domain: payment-network
+      - id: payb
+        type: external
+        labels:
+          provider: payb
+          domain: payment-network
+
+    edges:
+      - from: front
+        to: cart
+        callType: sync
+        probability: 1.0
+      - from: front
+        to: pricing
+        callType: sync
+        probability: 1.0
+      - from: front
+        to: paya
+        callType: sync
+        probability: 0.50
+        notes: "A/B routing split inferred from traces"
+      - from: front
+        to: payb
+        callType: sync
+        probability: 0.50
+        notes: "A/B routing split inferred from traces"
+
+  redundancy:
+    - pattern: race
+      group: [paya, payb]
+      semantics: hedged
+
+  failureDomains:
+    # Inferred domains can be joined with declared domains.
+    inferred:
+      - name: "k8s/zone"
+        members: [front, cart, pricing]
+        confidence: 0.90
+    declared:
+      - name: "payment-network"
+        members: [paya, payb]
+        confidence: 1.00

@@ -1,0 +1,141 @@
+apiVersion: emac.dev/v1alpha1
+kind: JourneyIntent
+metadata:
+  name: checkout
+  labels:
+    emac.example: "true"
+    journey: checkout
+spec:
+  # --- Journey objectives (intent)
+  objectives:
+    availability:
+      # A 30-day window is a common SLO budgeting period.
+      window: 30d
+      target: 0.995            # 99.5% success ratio
+      sli:
+        # We model journey success as good/total.
+        goodEventQuery: |
+          sum(rate(journey_requests_total{journey="checkout",result="success"}[{{ .window }}]))
+        totalEventQuery: |
+          sum(rate(journey_requests_total{journey="checkout"}[{{ .window }}]))
+    latency:
+      window: 30d
+      objective:
+        metric: p99
+        threshold: 0.4          # seconds (400ms)
+      evidence:
+        # Example histogram-based p99 from Prometheus.
+        promql: |
+          histogram_quantile(
+            0.99,
+            sum(rate(journey_latency_seconds_bucket{journey="checkout"}[{{ .window }}])) by (le)
+          )
+
+  # --- Control-flow operators (intent)
+  # Root of the operator tree for this journey.
+  operator:
+    type: series
+    steps:
+      - ref: front
+      - type: parallel
+        join: all               # fork-join: all branches must succeed
+        branches:
+          - ref: cart
+          - ref: pricing
+      - type: race
+        semantics: hedged       # first successful response wins
+        branches:
+          - ref: paya
+          - ref: payb
+
+  # --- Bindings to atomic SLOs (intent -> local contracts)
+  # These demonstrate how EmaC can reference existing SLO-as-code.
+  components:
+    front:
+      kind: service
+      atomicSLORef: "openslo:slo.front.availability"
+      failureDomains:
+        - "k8s/zone"
+        - "k8s/cluster"
+    cart:
+      kind: service
+      atomicSLORef: "openslo:slo.cart.availability"
+      failureDomains:
+        - "k8s/zone"
+        - "k8s/cluster"
+    pricing:
+      kind: service
+      atomicSLORef: "openslo:slo.pricing.availability"
+      failureDomains:
+        - "k8s/zone"
+        - "k8s/cluster"
+    paya:
+      kind: external_dependency
+      atomicSLORef: "openslo:slo.paya.availability"
+      failureDomains:
+        - "payment-network"
+    payb:
+      kind: external_dependency
+      atomicSLORef: "openslo:slo.payb.availability"
+      failureDomains:
+        - "payment-network"
+
+  # --- Evidence (what the system is)
+  evidence:
+    modelDiscovery:
+      enabled: true
+      # The discovery output is treated as an input artifact, with confidence.
+      discoveredModelRef: "../model_discovery/discovered.checkout.yaml"
+      inputs:
+        - type: opentelemetry-traces
+          notes: "Discover spans/services for the checkout journey"
+        - type: kubernetes-manifests
+          notes: "Discover actual deployments, routing, and labels"
+
+  # --- Failure-domain rules (used to bound correlation)
+  failureDomains:
+    # Domain rules can be declared (policy) and also inferred from evidence.
+    rules:
+      - name: "k8s/zone"
+        kind: inferred
+        source: kubernetes
+        key: "topology.kubernetes.io/zone"
+      - name: "k8s/cluster"
+        kind: declared
+        description: "All components share the same cluster control plane"
+      - name: "payment-network"
+        kind: declared
+        description: "Common-cause failures for external payment providers"
+
+  # --- Governance policy (what automation is allowed to do)
+  governance:
+    evaluationMode: conservative
+    # Conservative policy: use pessimistic bounds for automated gates.
+    useBoundsForAutomation:
+      availability: pessimistic
+      latency: upperConfidence
+
+    alerts:
+      promRuleOutput: "../compiled/prometheus/alerts.yaml"
+      sloBudgetWindow: 30d
+      # Multiwindow, multi-burn-rate starting points (2%/1h, 5%/6h, 10%/3d).
+      burnRatePolicy:
+        page:
+          - burnRate: 14.4
+            longWindow: 1h
+            shortWindow: 5m
+          - burnRate: 6
+            longWindow: 6h
+            shortWindow: 30m
+        ticket:
+          - burnRate: 1
+            longWindow: 3d
+            shortWindow: 6h
+
+    progressiveDelivery:
+      provider: argo-rollouts
+      analysisTemplateOutput: "../compiled/argo/analysis-template.yaml"
+      gate:
+        # Example: promote only if canary burn rate < 1 and p99 latency stays below threshold.
+        maxCanaryBurnRate: 1.0
+        maxP99LatencySeconds: 0.4

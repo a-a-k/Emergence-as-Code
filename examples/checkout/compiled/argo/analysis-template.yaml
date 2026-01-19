@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: emac-checkout-slo-gate
+  labels:
+    emac.example: "true"
+spec:
+  args:
+    - name: prometheus-address
+      value: http://prometheus.monitoring.svc:9090
+
+    # Error budget for availability target=0.995 is 0.005.
+    - name: error-budget
+      value: "0.005"
+
+  metrics:
+    # 1) Canary burn rate over 5m (burn = error_ratio / error_budget)
+    - name: checkout-canary-burnrate-5m
+      interval: 1m
+      successCondition: "result[0] <= 1.0"
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: "{{args.prometheus-address}}"
+          query: |
+            (
+              1 - (
+                sum(rate(journey_requests_total{journey="checkout",result="success",rollout="canary"}[5m]))
+                /
+                sum(rate(journey_requests_total{journey="checkout",rollout="canary"}[5m]))
+              )
+            )
+            /
+            {{args.error-budget}}
+
+    # 2) Canary p99 latency over 5m
+    - name: checkout-canary-latency-p99-5m
+      interval: 1m
+      successCondition: "result[0] <= 0.4"
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: "{{args.prometheus-address}}"
+          query: |
+            histogram_quantile(
+              0.99,
+              sum(rate(journey_latency_seconds_bucket{journey="checkout",rollout="canary"}[5m])) by (le)
+            )

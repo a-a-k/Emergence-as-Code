@@ -1,0 +1,53 @@
+apiVersion: emac.dev/v1alpha1
+kind: DerivationReport
+metadata:
+  name: checkout
+  labels:
+    emac.example: "true"
+spec:
+  journey:
+    name: checkout
+    operatorGraph:
+      series:
+        - front
+        - parallel: [cart, pricing]
+        - race: [paya, payb]
+
+  atomicAvailabilityTargets:
+    front: 0.9995
+    cart: 0.999
+    pricing: 0.999
+    paya: 0.995
+    payb: 0.995
+
+  failureDomains:
+    paya: [payment-network]
+    payb: [payment-network]
+    front: [k8s/zone, k8s/cluster]
+    cart: [k8s/zone, k8s/cluster]
+    pricing: [k8s/zone, k8s/cluster]
+
+  composition:
+    objectiveAvailabilityTarget: 0.995
+    optimisticAssumptions:
+      - "Independence across providers paya/payb"
+      - "Independence across k8s components within zone"
+    pessimisticAssumptions:
+      - "Full correlation inside domain payment-network"
+
+    results:
+      availability:
+        optimisticEstimate: 0.99747706
+        pessimisticBound: 0.99251449
+        interpretation:
+          - "Optimistic estimate meets 0.995, pessimistic bound does not."
+          - "This gap is the quantified 'shared-fate risk' of the payment-network domain."
+
+  governance:
+    conservativeGate:
+      uses: pessimisticBound
+      decision: "FAIL"   # would block promotion until risk is mitigated or objective is renegotiated
+    compiledArtifacts:
+      prometheusRecordingRules: "../prometheus/recording-rules.yaml"
+      prometheusAlerts: "../prometheus/alerts.yaml"
+      argoAnalysisTemplate: "../argo/analysis-template.yaml"

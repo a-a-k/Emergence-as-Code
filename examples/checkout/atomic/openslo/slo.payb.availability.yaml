@@ -1,0 +1,32 @@
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: slo.payb.availability
+spec:
+  service: payb
+  indicator:
+    metadata:
+      name: sli.payb.success
+    spec:
+      ratioMetric:
+        counter: true
+        good:
+          metricSource:
+            type: Prometheus
+            metricSourceRef: prometheus-datasource
+            spec:
+              query: |
+                sum(increase(payment_requests_total{provider="payb",result="success"}[30d]))
+        total:
+          metricSource:
+            type: Prometheus
+            metricSourceRef: prometheus-datasource
+            spec:
+              query: |
+                sum(increase(payment_requests_total{provider="payb"}[30d]))
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - target: 0.995
