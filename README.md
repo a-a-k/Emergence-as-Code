@@ -1,8 +1,8 @@
-# Emergence-as-Code (EmaC) — Example Configuration Repository
+# Emergence-as-Code for Self-Governing Reliable Systems (EmaC) — Example Configuration Repository
 
 This repository accompanies the manuscript **"Emergence-as-Code for Self-Governing Reliable Systems"**.
 
-It contains a **worked example** of the artifacts referenced in the paper:
+It contains an **illustrative worked example** of the artifacts referenced in the paper:
 
 - an **EmaC intent spec** (journey objective + operator graph + policy),
 - a sample **Model Discovery output** (evidence-backed topology/routing hypothesis),
@@ -11,8 +11,9 @@ It contains a **worked example** of the artifacts referenced in the paper:
   - Argo Rollouts `AnalysisTemplate` (progressive-delivery gate based on budget burn and tail latency).
 
 > **Scope note:** This is **not** a full implementation of EmaC.
-> The files are intentionally small and illustrative so that reviewers/readers can see
-> what “intent”, “evidence”, and “compiled governance artifacts” look like in practice.
+> The files are intentionally small and representative so reviewers/readers can see
+> what “intent”, “evidence”, and “compiled governance artifacts” look like in practice,
+> without implying production completeness.
 
 ---
 
@@ -45,7 +46,7 @@ examples/
 
 ---
 
-## The worked example: Checkout journey
+## The illustrative example: Checkout journey
 
 The journey being modeled is a simplified **checkout** flow with:
 
@@ -108,4 +109,4 @@ Then reference the AnalysisTemplate in your Rollout (see `rollout-snippet.yaml`)
 
 ## License
 
-The repository content is provided for research/educational use.
+Licensed under the MIT License. See `LICENSE`.
