@@ -1,4 +1,4 @@
-# Emergence-as-Code for Self-Governing Reliable Systems (EmaC) — Example Configuration Repository
+# Emergence-as-Code (EmaC) — Example Configuration Repository
 
 This repository accompanies the manuscript **"Emergence-as-Code for Self-Governing Reliable Systems"**.
 
