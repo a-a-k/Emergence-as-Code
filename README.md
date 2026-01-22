@@ -1,6 +1,6 @@
 # Emergence-as-Code (EmaC) — Example Configuration Repository
 
-This repository accompanies the manuscript **“Emergence-as-Code: Compiling Journey SLOs into Self-Governing Resilience”**.
+This repository accompanies the manuscript **"Emergence-as-Code for Self-Governing Reliable Systems"**.
 
 It contains a **worked example** of the artifacts referenced in the paper:
 
