@@ -2,7 +2,7 @@
 
 This repository accompanies the manuscript **"Emergence-as-Code for Self-Governing Reliable Systems"**.
 
-It contains a **worked example** of the artifacts referenced in the paper:
+It contains a **proposed example** of the artifacts referenced in the paper:
 
 - an **EmaC intent spec** (journey objective + operator graph + policy),
 - a sample **Model Discovery output** (evidence-backed topology/routing hypothesis),
