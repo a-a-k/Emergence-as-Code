@@ -10,7 +10,7 @@ metadata:
 spec:
   scenario: missing_or_conflicting_evidence
   inputArtifacts:
-    canonicalIntent: ../spec/emac.checkout.yaml
+    canonicalIntent: ../../examples/checkout/spec/emac.checkout.yaml
     acceptedModel: fixtures/accepted/baseline.accepted-model.yaml
     scenario: fixtures/evidence/missing_or_conflicting_evidence/scenario.yaml
     traceEvidence: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml

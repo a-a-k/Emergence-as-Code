@@ -1,7 +1,9 @@
 # Checkout Model Discovery Replay Sanity Check
 
-This directory adds an executable sanity check around the existing checkout
-example. It demonstrates the reviewable chain:
+This directory contains the executable sanity replay for the checkout artifact.
+It is separated from `examples/checkout/` so the static example configuration
+and the generated replay layer are easy to inspect independently. The replay
+demonstrates the reviewable chain:
 
 ```text
 intent + operational evidence -> discovered model delta -> compiled optimistic/pessimistic bounds -> governance decision
@@ -14,9 +16,10 @@ Argo Rollouts, a tracing backend, or cloud access.
 
 ## Relation to the Existing Checkout Example
 
-The canonical checkout intent at `../spec/emac.checkout.yaml` declares a shared
-`payment-network` failure domain for `paya` and `payb`, and the canonical
-derivation report at `../compiled/report/derivation.checkout.yaml` shows the
+The canonical checkout intent at `../../examples/checkout/spec/emac.checkout.yaml`
+declares a shared `payment-network` failure domain for `paya` and `payb`, and
+the canonical derivation report at
+`../../examples/checkout/compiled/report/derivation.checkout.yaml` shows the
 conservative shared-fate failure. Those files are not mutated by this replay.
 
 The replay reads the canonical EmaC intent and validates that the checkout
@@ -162,7 +165,7 @@ confidence.
 Run:
 
 ```bash
-python examples/checkout/sanity/tool/replay.py
+python replay/checkout/tool/replay.py
 ```
 
 The script uses Python 3 and PyYAML. No network access or live infrastructure is

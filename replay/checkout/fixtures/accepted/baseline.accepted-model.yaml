@@ -8,8 +8,8 @@ metadata:
     journey: checkout
 spec:
   relationToCanonicalExample:
-    canonicalIntentRef: "../../../spec/emac.checkout.yaml"
-    canonicalDerivationRef: "../../../compiled/report/derivation.checkout.yaml"
+    canonicalIntentRef: "examples/checkout/spec/emac.checkout.yaml"
+    canonicalDerivationRef: "examples/checkout/compiled/report/derivation.checkout.yaml"
     note: >
       This is a replay fixture, not the canonical source of truth. The canonical
       checkout example declares a shared payment-network domain for paya and
@@ -83,4 +83,4 @@ spec:
       - "Canonical checkout spec remains the shared-fate risk case."
   provenance:
     acceptedBy: "replay-fixture"
-    source: "examples/checkout/sanity/fixtures/accepted/baseline.accepted-model.yaml"
+    source: "replay/checkout/fixtures/accepted/baseline.accepted-model.yaml"

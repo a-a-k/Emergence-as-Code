@@ -1,0 +1,103 @@
+apiVersion: emac.sanity/v1
+kind: SanityDerivationReport
+metadata:
+  name: checkout-missing_or_conflicting_evidence
+  labels:
+    emac.example: 'true'
+    emac.sanity.generated: 'true'
+    journey: checkout
+    scenario: missing_or_conflicting_evidence
+spec:
+  scenario: missing_or_conflicting_evidence
+  inputArtifacts:
+    canonicalIntent: ../../examples/checkout/spec/emac.checkout.yaml
+    acceptedModel: fixtures/accepted/baseline.accepted-model.yaml
+    atomicSloInput: fixtures/atomic/checkout-atomic-availability.yaml
+    policy: fixtures/policy/sanity-policy.yaml
+    scenario: fixtures/evidence/missing_or_conflicting_evidence/scenario.yaml
+    traceEvidence: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml
+    deploymentDomainEvidence: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+  generatedArtifacts:
+    discoveredModel: generated/models/missing_or_conflicting_evidence.discovered-model.yaml
+    delta: generated/deltas/missing_or_conflicting_evidence.delta.yaml
+  operatorGraph: Series(front, Parallel(cart, pricing), Race(paya, payb))
+  atomicAvailabilityInputs:
+    front: 0.9995
+    cart: 0.999
+    pricing: 0.999
+    paya: 0.995
+    payb: 0.995
+  localSloView: unchanged/green
+  policy:
+    objectiveAvailability: 0.995
+    evidenceWindow: 30d
+    autoAcceptConfidence: 0.8
+    highImpactDeltaThreshold: 0.001
+  failureDomainAssumptions:
+    paymentRaceRelation: unknown_or_conflicting
+    paymentDomains:
+      paya:
+      - payment-network-shared
+      payb:
+      - unknown
+    pessimisticRule: 'unknownOrConflictingDomain: collapse race and require REVIEW'
+    assumptions:
+    - payment domain evidence is missing or conflicting
+    - automation treats payment alternatives as correlated until reconciled
+  composition:
+    formulas:
+      series: multiply required stages
+      parallelJoinAll: multiply all branches
+      raceOptimistic: 1 - (1 - A_paya) * (1 - A_payb)
+      racePessimisticShared: max(A_paya, A_payb)
+    optimisticEstimate:
+      symbol: A_plus
+      value: 0.99747706
+      paymentRaceRule: 1 - (1 - A_paya) * (1 - A_payb)
+    pessimisticBound:
+      symbol: A_minus
+      value: 0.99251449
+      paymentRaceRule: 'unknownOrConflictingDomain: collapse race and require REVIEW'
+    boundWidth: 0.00496257
+    intermediateValues:
+      parallelCartPricing: 0.998001
+      raceOptimistic: 0.999975
+      racePessimistic: 0.995
+  confidence:
+    overall: 0.350625
+    fields:
+      operatorEdges: 0.6375
+      paymentRace: 0.35
+      failureDomains: 0.2
+    evidenceFlags:
+    - incomplete_trace_coverage
+    - incomplete_payment_branch_coverage
+    - conflicting_domain_evidence:paya
+    - missing_domain_evidence:payb
+    basis:
+    - operator edges use trace parent/child span linkage
+    - payment race uses overlapping payment alternatives plus accepted intent
+    - failure domains use deployment/provider labels and payment span attributes
+  governance:
+    decision: REVIEW
+    reasons:
+    - overall confidence 0.35 is below auto-accept threshold 0.80
+    - 'evidence flags are present: incomplete_trace_coverage, incomplete_payment_branch_coverage, conflicting_domain_evidence:paya,
+      missing_domain_evidence:payb'
+    passRequires:
+    - A_minus >= objectiveAvailability
+    - overallConfidence >= autoAcceptConfidence
+    - no unresolved high-impact model delta
+    - no incomplete or conflicting evidence flags
+  dominantContributors:
+  - name: payment_race_domain_correlation
+    reason: payment race redundancy is removed or not trusted in the pessimistic bound
+    raceAPlus: 0.999975
+    raceAMinus: 0.995
+    paymentRaceLoss: 0.004975
+  - name: objective_violation
+    reason: A_minus is below the policy objective
+    objectiveAvailability: 0.995
+    shortfall: 0.00248551
+  interpretation: The replay can still compile an analysis model, but missing payb traces and conflicting
+    payment-domain metadata keep confidence below policy threshold, so the governance decision is REVIEW.

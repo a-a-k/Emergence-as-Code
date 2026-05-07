@@ -1,25 +1,25 @@
 apiVersion: emac.sanity/v1
 kind: SanityDerivationReport
 metadata:
-  name: checkout-payment_shared_fate_drift
+  name: checkout-baseline_separate_domains
   labels:
     emac.example: 'true'
     emac.sanity.generated: 'true'
     journey: checkout
-    scenario: payment_shared_fate_drift
+    scenario: baseline_separate_domains
 spec:
-  scenario: payment_shared_fate_drift
+  scenario: baseline_separate_domains
   inputArtifacts:
-    canonicalIntent: ../spec/emac.checkout.yaml
+    canonicalIntent: ../../examples/checkout/spec/emac.checkout.yaml
     acceptedModel: fixtures/accepted/baseline.accepted-model.yaml
     atomicSloInput: fixtures/atomic/checkout-atomic-availability.yaml
     policy: fixtures/policy/sanity-policy.yaml
-    scenario: fixtures/evidence/payment_shared_fate_drift/scenario.yaml
-    traceEvidence: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
-    deploymentDomainEvidence: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+    scenario: fixtures/evidence/baseline_separate_domains/scenario.yaml
+    traceEvidence: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+    deploymentDomainEvidence: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
   generatedArtifacts:
-    discoveredModel: generated/models/payment_shared_fate_drift.discovered-model.yaml
-    delta: generated/deltas/payment_shared_fate_drift.delta.yaml
+    discoveredModel: generated/models/baseline_separate_domains.discovered-model.yaml
+    delta: null
   operatorGraph: Series(front, Parallel(cart, pricing), Race(paya, payb))
   atomicAvailabilityInputs:
     front: 0.9995
@@ -34,16 +34,16 @@ spec:
     autoAcceptConfidence: 0.8
     highImpactDeltaThreshold: 0.001
   failureDomainAssumptions:
-    paymentRaceRelation: shared_effective_domain
+    paymentRaceRelation: separate_effective_domains
     paymentDomains:
       paya:
-      - payment-network-shared
+      - payment-network-a
       payb:
-      - payment-network-shared
-    pessimisticRule: 'sharedEffectiveDomain: collapse race to best single alternative'
+      - payment-network-b
+    pessimisticRule: 'separateKnownDomains: use independent race formula'
     assumptions:
-    - paya and payb share one effective payment domain
-    - full correlation inside that domain removes race availability gain
+    - paya and payb have distinct known effective payment domains
+    - payment race keeps independent redundancy in the pessimistic replay bound
   composition:
     formulas:
       series: multiply required stages
@@ -56,13 +56,13 @@ spec:
       paymentRaceRule: 1 - (1 - A_paya) * (1 - A_payb)
     pessimisticBound:
       symbol: A_minus
-      value: 0.99251449
-      paymentRaceRule: 'sharedEffectiveDomain: collapse race to best single alternative'
-    boundWidth: 0.00496257
+      value: 0.99747706
+      paymentRaceRule: 'separateKnownDomains: use independent race formula'
+    boundWidth: 0.0
     intermediateValues:
       parallelCartPricing: 0.998001
       raceOptimistic: 0.999975
-      racePessimistic: 0.995
+      racePessimistic: 0.999975
   confidence:
     overall: 0.95
     fields:
@@ -75,24 +75,14 @@ spec:
     - payment race uses overlapping payment alternatives plus accepted intent
     - failure domains use deployment/provider labels and payment span attributes
   governance:
-    decision: FAIL
+    decision: PASS
     reasons:
-    - A_minus 0.99251449 is below objective 0.99500000
+    - A_minus meets objective and evidence confidence is sufficient
     passRequires:
     - A_minus >= objectiveAvailability
     - overallConfidence >= autoAcceptConfidence
     - no unresolved high-impact model delta
     - no incomplete or conflicting evidence flags
-  dominantContributors:
-  - name: payment_race_domain_correlation
-    reason: payment race redundancy is removed or not trusted in the pessimistic bound
-    raceAPlus: 0.999975
-    raceAMinus: 0.995
-    paymentRaceLoss: 0.004975
-  - name: objective_violation
-    reason: A_minus is below the policy objective
-    objectiveAvailability: 0.995
-    shortfall: 0.00248551
-  interpretation: Local SLO inputs are unchanged, but evidence moves paya and payb into one effective
-    payment domain. A_plus stays the same while A_minus collapses the payment race and the conservative
-    gate returns FAIL.
+  dominantContributors: []
+  interpretation: Evidence supports separate effective payment domains, so the pessimistic replay keeps
+    the payment race redundancy and the conservative gate passes.

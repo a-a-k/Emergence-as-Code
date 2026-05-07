@@ -10,7 +10,7 @@ metadata:
 spec:
   scenario: baseline_separate_domains
   inputArtifacts:
-    canonicalIntent: ../spec/emac.checkout.yaml
+    canonicalIntent: ../../examples/checkout/spec/emac.checkout.yaml
     acceptedModel: fixtures/accepted/baseline.accepted-model.yaml
     scenario: fixtures/evidence/baseline_separate_domains/scenario.yaml
     traceEvidence: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml

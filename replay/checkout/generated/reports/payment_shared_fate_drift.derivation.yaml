@@ -1,25 +1,25 @@
 apiVersion: emac.sanity/v1
 kind: SanityDerivationReport
 metadata:
-  name: checkout-missing_or_conflicting_evidence
+  name: checkout-payment_shared_fate_drift
   labels:
     emac.example: 'true'
     emac.sanity.generated: 'true'
     journey: checkout
-    scenario: missing_or_conflicting_evidence
+    scenario: payment_shared_fate_drift
 spec:
-  scenario: missing_or_conflicting_evidence
+  scenario: payment_shared_fate_drift
   inputArtifacts:
-    canonicalIntent: ../spec/emac.checkout.yaml
+    canonicalIntent: ../../examples/checkout/spec/emac.checkout.yaml
     acceptedModel: fixtures/accepted/baseline.accepted-model.yaml
     atomicSloInput: fixtures/atomic/checkout-atomic-availability.yaml
     policy: fixtures/policy/sanity-policy.yaml
-    scenario: fixtures/evidence/missing_or_conflicting_evidence/scenario.yaml
-    traceEvidence: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml
-    deploymentDomainEvidence: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+    scenario: fixtures/evidence/payment_shared_fate_drift/scenario.yaml
+    traceEvidence: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+    deploymentDomainEvidence: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
   generatedArtifacts:
-    discoveredModel: generated/models/missing_or_conflicting_evidence.discovered-model.yaml
-    delta: generated/deltas/missing_or_conflicting_evidence.delta.yaml
+    discoveredModel: generated/models/payment_shared_fate_drift.discovered-model.yaml
+    delta: generated/deltas/payment_shared_fate_drift.delta.yaml
   operatorGraph: Series(front, Parallel(cart, pricing), Race(paya, payb))
   atomicAvailabilityInputs:
     front: 0.9995
@@ -34,16 +34,16 @@ spec:
     autoAcceptConfidence: 0.8
     highImpactDeltaThreshold: 0.001
   failureDomainAssumptions:
-    paymentRaceRelation: unknown_or_conflicting
+    paymentRaceRelation: shared_effective_domain
     paymentDomains:
       paya:
       - payment-network-shared
       payb:
-      - unknown
-    pessimisticRule: 'unknownOrConflictingDomain: collapse race and require REVIEW'
+      - payment-network-shared
+    pessimisticRule: 'sharedEffectiveDomain: collapse race to best single alternative'
     assumptions:
-    - payment domain evidence is missing or conflicting
-    - automation treats payment alternatives as correlated until reconciled
+    - paya and payb share one effective payment domain
+    - full correlation inside that domain removes race availability gain
   composition:
     formulas:
       series: multiply required stages
@@ -57,33 +57,27 @@ spec:
     pessimisticBound:
       symbol: A_minus
       value: 0.99251449
-      paymentRaceRule: 'unknownOrConflictingDomain: collapse race and require REVIEW'
+      paymentRaceRule: 'sharedEffectiveDomain: collapse race to best single alternative'
     boundWidth: 0.00496257
     intermediateValues:
       parallelCartPricing: 0.998001
       raceOptimistic: 0.999975
       racePessimistic: 0.995
   confidence:
-    overall: 0.350625
+    overall: 0.95
     fields:
-      operatorEdges: 0.6375
-      paymentRace: 0.35
-      failureDomains: 0.2
-    evidenceFlags:
-    - incomplete_trace_coverage
-    - incomplete_payment_branch_coverage
-    - conflicting_domain_evidence:paya
-    - missing_domain_evidence:payb
+      operatorEdges: 0.95
+      paymentRace: 0.95
+      failureDomains: 0.95
+    evidenceFlags: []
     basis:
     - operator edges use trace parent/child span linkage
     - payment race uses overlapping payment alternatives plus accepted intent
     - failure domains use deployment/provider labels and payment span attributes
   governance:
-    decision: REVIEW
+    decision: FAIL
     reasons:
-    - overall confidence 0.35 is below auto-accept threshold 0.80
-    - 'evidence flags are present: incomplete_trace_coverage, incomplete_payment_branch_coverage, conflicting_domain_evidence:paya,
-      missing_domain_evidence:payb'
+    - A_minus 0.99251449 is below objective 0.99500000
     passRequires:
     - A_minus >= objectiveAvailability
     - overallConfidence >= autoAcceptConfidence
@@ -99,5 +93,6 @@ spec:
     reason: A_minus is below the policy objective
     objectiveAvailability: 0.995
     shortfall: 0.00248551
-  interpretation: The replay can still compile an analysis model, but missing payb traces and conflicting
-    payment-domain metadata keep confidence below policy threshold, so the governance decision is REVIEW.
+  interpretation: Local SLO inputs are unchanged, but evidence moves paya and payb into one effective
+    payment domain. A_plus stays the same while A_minus collapses the payment race and the conservative
+    gate returns FAIL.

@@ -10,7 +10,7 @@
     }
   },
   "spec": {
-    "canonicalIntent": "../spec/emac.checkout.yaml",
+    "canonicalIntent": "../../examples/checkout/spec/emac.checkout.yaml",
     "acceptedModel": "fixtures/accepted/baseline.accepted-model.yaml",
     "policy": {
       "objectiveAvailability": 0.995,

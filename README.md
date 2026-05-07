@@ -44,16 +44,32 @@ examples/
         rollout-snippet.yaml          # Example Rollout step referencing the template
       report/
         derivation.checkout.yaml      # Example derivation output (bounds + assumptions)
-    sanity/
-      README.md                       # Executable replay sanity check
-      fixtures/                       # Synthetic accepted model, evidence, SLO, and policy inputs
-      tool/replay.py                  # Deterministic replay/compiler script
-      generated/                      # Discovered models, deltas, reports, and summaries
+
+replay/
+  checkout/
+    README.md                         # Executable Model Discovery replay sanity check
+    fixtures/                         # Synthetic accepted model, evidence, SLO, and policy inputs
+    tool/replay.py                    # Deterministic replay/compiler script
+    generated/                        # Discovered models, deltas, reports, and summaries
 ```
 
 ---
 
-## The illustrative example: Checkout journey
+## What Is Where
+
+`examples/checkout/` is the static checkout artifact. It contains the canonical
+intent, the representative discovered model, atomic OpenSLO inputs, and compiled
+Prometheus/Argo/report outputs for the shared-fate checkout example.
+
+`replay/checkout/` is the executable sanity replay. It reads the canonical
+checkout intent from `examples/checkout/spec/emac.checkout.yaml`, combines it
+with synthetic replay fixtures, and regenerates discovered models, typed deltas,
+derivation reports, provenance notes, and machine-readable summaries.
+
+The replay is separate from `examples/checkout/` so generated scenario outputs
+do not look like part of the canonical source-of-truth example.
+
+## Checkout Journey Artifact
 
 The journey being modeled is a simplified **checkout** flow with:
 
@@ -102,11 +118,11 @@ and domain hypotheses that keep the model calibrated.
 
 For a deterministic, inspectable replay over the same checkout journey:
 
-- `python examples/checkout/sanity/tool/replay.py`
+- `python replay/checkout/tool/replay.py`
 
-The replay uses synthetic fixtures under `examples/checkout/sanity/fixtures/`
+The replay uses synthetic fixtures under `replay/checkout/fixtures/`
 and writes generated discovered models, deltas, derivation reports, and summaries
-under `examples/checkout/sanity/generated/`. It is a **sanity check** for the
+under `replay/checkout/generated/`. It is a **sanity check** for the
 paper's Model Discovery/governance story, not a full EmaC implementation.
 
 ### 3) Apply compiled artifacts

@@ -10,7 +10,7 @@ metadata:
 spec:
   scenario: payment_shared_fate_drift
   inputArtifacts:
-    canonicalIntent: ../spec/emac.checkout.yaml
+    canonicalIntent: ../../examples/checkout/spec/emac.checkout.yaml
     acceptedModel: fixtures/accepted/baseline.accepted-model.yaml
     scenario: fixtures/evidence/payment_shared_fate_drift/scenario.yaml
     traceEvidence: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
