@@ -1,0 +1,17 @@
+apiVersion: emac.sanity/v1
+kind: ReplayScenario
+metadata:
+  name: payment_shared_fate_drift
+  labels:
+    emac.sanity.fixture: "true"
+    journey: checkout
+spec:
+  purpose: "failure-domain drift invisible to unchanged local SLO inputs"
+  localSloInputRef: "../../atomic/checkout-atomic-availability.yaml"
+  traceEvidenceRef: "trace-evidence.yaml"
+  deploymentEvidenceRef: "deployment-domains.yaml"
+  expectedDiscoveryResult: "paya and payb now share one effective payment domain"
+  expectedGovernanceDecision: "FAIL"
+  notes:
+    - "This scenario aligns with the canonical checkout shared-fate risk."
+    - "Atomic availability inputs are intentionally identical to the baseline."

@@ -39,15 +39,54 @@ spec:
       availability:
         optimisticEstimate: 0.99747706
         pessimisticBound: 0.99251449
+        boundWidth: 0.00496257
         interpretation:
           - "Optimistic estimate meets 0.995, pessimistic bound does not."
           - "This gap is the quantified 'shared-fate risk' of the payment-network domain."
+
+  syntheticSLIs:
+    prometheusRuleRef: "../prometheus/recording-rules.yaml"
+    availability:
+      optimistic:
+        record: 'journey:checkout:availability_bound{bound="optimistic"}'
+        value: 0.99747706
+      pessimistic:
+        record: 'journey:checkout:availability_bound{bound="pessimistic"}'
+        value: 0.99251449
+      width:
+        record: "journey:checkout:availability_bound_width"
+        value: 0.00496257
+    latency:
+      p99UpperBound:
+        record: "journey:checkout:latency_seconds:p99_upper_bound"
+        value: 0.4
+        note: "Illustrative bound used by the generated action guard."
+    confidence:
+      modelDelta:
+        record: "journey:checkout:model_delta:confidence"
+        value: 0.78
+        source: "../model_discovery/discovered.checkout.yaml"
+    contributors:
+      - record: 'journey:checkout:contributor{contributor="payment_network_shared_fate",kind="payment_race_loss"}'
+        value: 0.004975
+      - record: 'journey:checkout:contributor{contributor="objective_violation",kind="pessimistic_shortfall"}'
+        value: 0.00248551
 
   governance:
     conservativeGate:
       uses: pessimisticBound
       decision: "FAIL"   # would block promotion until risk is mitigated or objective is renegotiated
+      actionGuard: "A_minus >= 0.995 && p99_U <= 0.4 && conf(delta) >= 0.8 && no_unresolved_domain_conflict"
+      actionGuardCompiledAs: "../argo/analysis-template.yaml"
     compiledArtifacts:
       prometheusRecordingRules: "../prometheus/recording-rules.yaml"
       prometheusAlerts: "../prometheus/alerts.yaml"
       argoAnalysisTemplate: "../argo/analysis-template.yaml"
+    provenance:
+      operatorExpression: "Series(front, Parallel(cart, pricing), Race(paya, payb))"
+      evidenceWindow: 30d
+      confidenceThreshold: 0.8
+      failureDomainAssumption: "Full correlation inside domain payment-network"
+      dominantContributors:
+        - "payment-network shared fate removes payment race redundancy"
+        - "pessimistic availability shortfall below objective 0.995"

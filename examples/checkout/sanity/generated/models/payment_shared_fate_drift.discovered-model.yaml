@@ -1,0 +1,378 @@
+apiVersion: emac.sanity/v1
+kind: DiscoveredJourneyModel
+metadata:
+  name: checkout-payment_shared_fate_drift
+  labels:
+    emac.example: 'true'
+    emac.sanity.generated: 'true'
+    journey: checkout
+    scenario: payment_shared_fate_drift
+spec:
+  scenario: payment_shared_fate_drift
+  inputArtifacts:
+    canonicalIntent: ../spec/emac.checkout.yaml
+    acceptedModel: fixtures/accepted/baseline.accepted-model.yaml
+    scenario: fixtures/evidence/payment_shared_fate_drift/scenario.yaml
+    traceEvidence: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+    deploymentDomainEvidence: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+  operatorGraph:
+    expression: Series(front, Parallel(cart, pricing), Race(paya, payb))
+    root:
+      type: series
+      steps:
+      - ref: front
+      - type: parallel
+        join: all
+        branches:
+        - ref: cart
+        - ref: pricing
+      - type: race
+        id: payment_race
+        semantics: hedged
+        branches:
+        - ref: paya
+        - ref: payb
+  topology:
+    nodes:
+    - id: front
+      type: service
+    - id: cart
+      type: service
+    - id: pricing
+      type: service
+    - id: paya
+      type: external_dependency
+    - id: payb
+      type: external_dependency
+    edges:
+    - from: front
+      to: cart
+      callType: sync
+      status: observed
+      confidence: 0.95
+      provenance:
+      - trace_id: drift-001
+        parent_span_id: d1-front
+        span_id: d1-cart
+      - trace_id: drift-002
+        parent_span_id: d2-front
+        span_id: d2-cart
+      - trace_id: drift-003
+        parent_span_id: d3-front
+        span_id: d3-cart
+    - from: front
+      to: pricing
+      callType: sync
+      status: observed
+      confidence: 0.95
+      provenance:
+      - trace_id: drift-001
+        parent_span_id: d1-front
+        span_id: d1-pricing
+      - trace_id: drift-002
+        parent_span_id: d2-front
+        span_id: d2-pricing
+      - trace_id: drift-003
+        parent_span_id: d3-front
+        span_id: d3-pricing
+    - from: front
+      to: paya
+      callType: sync
+      status: observed
+      confidence: 0.95
+      provenance:
+      - trace_id: drift-001
+        parent_span_id: d1-front
+        span_id: d1-paya
+      - trace_id: drift-002
+        parent_span_id: d2-front
+        span_id: d2-paya
+      - trace_id: drift-003
+        parent_span_id: d3-front
+        span_id: d3-paya
+    - from: front
+      to: payb
+      callType: sync
+      status: observed
+      confidence: 0.95
+      provenance:
+      - trace_id: drift-001
+        parent_span_id: d1-front
+        span_id: d1-payb
+      - trace_id: drift-002
+        parent_span_id: d2-front
+        span_id: d2-payb
+      - trace_id: drift-003
+        parent_span_id: d3-front
+        span_id: d3-payb
+    edgeDiagnostics:
+      expectedEdges:
+      - front->cart
+      - front->paya
+      - front->payb
+      - front->pricing
+      observedEdges:
+      - front->cart
+      - front->paya
+      - front->payb
+      - front->pricing
+      missingEdges: []
+      coverage: 1.0
+  redundancy:
+  - id: payment_race
+    pattern: race
+    semantics: hedged
+    group:
+    - paya
+    - payb
+    status: trace_and_intent_agree
+    branchObservationFrequency:
+      paya: 1.0
+      payb: 1.0
+    overlapRatio: 1.0
+    tracesWithBothBranches: 3
+    confidence: 0.95
+    provenance:
+      traceSignal: payment spans share emac.redundancy_group=payment_race and overlap in time
+      observedPaymentTraces: 3
+  failureDomains:
+    effective:
+      front:
+      - k8s/zone:checkout-a
+      - k8s/cluster:checkout
+      cart:
+      - k8s/zone:checkout-a
+      - k8s/cluster:checkout
+      pricing:
+      - k8s/zone:checkout-a
+      - k8s/cluster:checkout
+      paya:
+      - payment-network-shared
+      payb:
+      - payment-network-shared
+    paymentRaceRelation: shared_effective_domain
+    details:
+      front:
+        domains:
+        - k8s/zone:checkout-a
+        - k8s/cluster:checkout
+        status: consistent
+        confidence: 0.95
+        observations:
+        - value: k8s/zone:checkout-a
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.front.labels.topology.kubernetes.io/zone
+          signal: deployment label
+        - value: k8s/cluster:checkout
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.front.cluster
+          signal: cluster inventory
+      cart:
+        domains:
+        - k8s/zone:checkout-a
+        - k8s/cluster:checkout
+        status: consistent
+        confidence: 0.95
+        observations:
+        - value: k8s/zone:checkout-a
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.cart.labels.topology.kubernetes.io/zone
+          signal: deployment label
+        - value: k8s/cluster:checkout
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.cart.cluster
+          signal: cluster inventory
+      pricing:
+        domains:
+        - k8s/zone:checkout-a
+        - k8s/cluster:checkout
+        status: consistent
+        confidence: 0.95
+        observations:
+        - value: k8s/zone:checkout-a
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.pricing.labels.topology.kubernetes.io/zone
+          signal: deployment label
+        - value: k8s/cluster:checkout
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.pricing.cluster
+          signal: cluster inventory
+      paya:
+        domains:
+        - payment-network-shared
+        status: consistent
+        confidence: 0.95
+        alternatives:
+          payment-network-shared: 5
+        observations:
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.paya.labels.emac.dev/effective-payment-domain
+          signal: mesh service label
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.paya.provider.network
+          signal: provider metadata
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+          field: spans.d1-paya.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+          field: spans.d2-paya.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+          field: spans.d3-paya.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+      payb:
+        domains:
+        - payment-network-shared
+        status: consistent
+        confidence: 0.95
+        alternatives:
+          payment-network-shared: 5
+        observations:
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.payb.labels.emac.dev/effective-payment-domain
+          signal: mesh service label
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+          field: services.payb.provider.network
+          signal: provider metadata
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+          field: spans.d1-payb.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+          field: spans.d2-payb.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+        - value: payment-network-shared
+          file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+          field: spans.d3-payb.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+  confidence:
+    overall: 0.95
+    fields:
+      operatorEdges: 0.95
+      paymentRace: 0.95
+      failureDomains: 0.95
+    evidenceFlags: []
+    basis:
+    - operator edges use trace parent/child span linkage
+    - payment race uses overlapping payment alternatives plus accepted intent
+    - failure domains use deployment/provider labels and payment span attributes
+  provenance:
+    operatorEdges:
+      front->cart:
+      - trace_id: drift-001
+        parent_span_id: d1-front
+        span_id: d1-cart
+      - trace_id: drift-002
+        parent_span_id: d2-front
+        span_id: d2-cart
+      - trace_id: drift-003
+        parent_span_id: d3-front
+        span_id: d3-cart
+      front->pricing:
+      - trace_id: drift-001
+        parent_span_id: d1-front
+        span_id: d1-pricing
+      - trace_id: drift-002
+        parent_span_id: d2-front
+        span_id: d2-pricing
+      - trace_id: drift-003
+        parent_span_id: d3-front
+        span_id: d3-pricing
+      front->paya:
+      - trace_id: drift-001
+        parent_span_id: d1-front
+        span_id: d1-paya
+      - trace_id: drift-002
+        parent_span_id: d2-front
+        span_id: d2-paya
+      - trace_id: drift-003
+        parent_span_id: d3-front
+        span_id: d3-paya
+      front->payb:
+      - trace_id: drift-001
+        parent_span_id: d1-front
+        span_id: d1-payb
+      - trace_id: drift-002
+        parent_span_id: d2-front
+        span_id: d2-payb
+      - trace_id: drift-003
+        parent_span_id: d3-front
+        span_id: d3-payb
+    failureDomains:
+      front:
+      - value: k8s/zone:checkout-a
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.front.labels.topology.kubernetes.io/zone
+        signal: deployment label
+      - value: k8s/cluster:checkout
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.front.cluster
+        signal: cluster inventory
+      cart:
+      - value: k8s/zone:checkout-a
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.cart.labels.topology.kubernetes.io/zone
+        signal: deployment label
+      - value: k8s/cluster:checkout
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.cart.cluster
+        signal: cluster inventory
+      pricing:
+      - value: k8s/zone:checkout-a
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.pricing.labels.topology.kubernetes.io/zone
+        signal: deployment label
+      - value: k8s/cluster:checkout
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.pricing.cluster
+        signal: cluster inventory
+      paya:
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.paya.labels.emac.dev/effective-payment-domain
+        signal: mesh service label
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.paya.provider.network
+        signal: provider metadata
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+        field: spans.d1-paya.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+        field: spans.d2-paya.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+        field: spans.d3-paya.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      payb:
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.payb.labels.emac.dev/effective-payment-domain
+        signal: mesh service label
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+        field: services.payb.provider.network
+        signal: provider metadata
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+        field: spans.d1-payb.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+        field: spans.d2-payb.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      - value: payment-network-shared
+        file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+        field: spans.d3-payb.attributes.emac.provider_domain
+        signal: trace payment-domain attribute

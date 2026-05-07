@@ -1,19 +1,21 @@
-# Emergence-as-Code (EmaC) — Example Configuration Repository
+# Emergence-as-Code (EmaC) Artifact Repository
 
-This repository accompanies the manuscript **"Emergence-as-Code for Self-Governing Reliable Systems"**.
+This repository accompanies the manuscript **"Emergence-as-Code as a Foundation for Self-Governing Reliable Systems"**.
 
-It contains an **illustrative worked example** of the artifacts referenced in the paper:
+It contains a compact review artifact for the checkout journey used in the paper:
 
 - an **EmaC intent spec** (journey objective + operator graph + policy),
 - a sample **Model Discovery output** (evidence-backed topology/routing hypothesis),
 - **compiled governance artifacts**:
   - Prometheus recording/alerting rules (multiwindow, multi-burn-rate burn alerts),
-  - Argo Rollouts `AnalysisTemplate` (progressive-delivery gate based on budget burn and tail latency).
+  - Argo Rollouts `AnalysisTemplate` (progressive-delivery gate based on bounds, confidence, budget burn, and tail latency),
+- an **executable Model Discovery replay sanity check** with synthetic evidence fixtures, generated model deltas, derivation reports, provenance notes, and machine-readable summaries.
 
 > **Scope note:** This is **not** a full implementation of EmaC.
 > The files are intentionally small and representative so reviewers/readers can see
-> what “intent”, “evidence”, and “compiled governance artifacts” look like in practice,
-> without implying production completeness.
+> what "intent", "evidence", "discovered model deltas", and "compiled governance artifacts"
+> look like in practice, without requiring Kubernetes, Prometheus, Argo Rollouts,
+> a tracing backend, or cloud access.
 
 ---
 
@@ -35,13 +37,18 @@ examples/
       slo.payb.availability.yaml
     compiled/
       prometheus/
-        recording-rules.yaml          # Derived SLI & helper time-series
+        recording-rules.yaml          # Derived SLI, synthetic bounds, contributor time-series
         alerts.yaml                   # Multiwindow, multi-burn-rate SLO alerts
       argo/
-        analysis-template.yaml        # Canary gate (budget burn + latency)
+        analysis-template.yaml        # Canary/action gate (bounds, confidence, burn, latency)
         rollout-snippet.yaml          # Example Rollout step referencing the template
       report/
         derivation.checkout.yaml      # Example derivation output (bounds + assumptions)
+    sanity/
+      README.md                       # Executable replay sanity check
+      fixtures/                       # Synthetic accepted model, evidence, SLO, and policy inputs
+      tool/replay.py                  # Deterministic replay/compiler script
+      generated/                      # Discovered models, deltas, reports, and summaries
 ```
 
 ---
@@ -91,6 +98,17 @@ Then look at:
 This is a **representative output** of Model Discovery: the inferred topology/routing
 and domain hypotheses that keep the model calibrated.
 
+### 2b) Run the executable sanity replay
+
+For a deterministic, inspectable replay over the same checkout journey:
+
+- `python examples/checkout/sanity/tool/replay.py`
+
+The replay uses synthetic fixtures under `examples/checkout/sanity/fixtures/`
+and writes generated discovered models, deltas, derivation reports, and summaries
+under `examples/checkout/sanity/generated/`. It is a **sanity check** for the
+paper's Model Discovery/governance story, not a full EmaC implementation.
+
 ### 3) Apply compiled artifacts
 If you want to *sketch* the deployment integration:
 
@@ -103,7 +121,7 @@ If you want to *sketch* the deployment integration:
 
 Then reference the AnalysisTemplate in your Rollout (see `rollout-snippet.yaml`).
 
-> You will need to adapt metric names/labels to your environment.
+> Metric names and labels are illustrative and match the example files in this repository.
 
 ---
 

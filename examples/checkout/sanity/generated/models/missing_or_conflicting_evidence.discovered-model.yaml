@@ -1,0 +1,297 @@
+apiVersion: emac.sanity/v1
+kind: DiscoveredJourneyModel
+metadata:
+  name: checkout-missing_or_conflicting_evidence
+  labels:
+    emac.example: 'true'
+    emac.sanity.generated: 'true'
+    journey: checkout
+    scenario: missing_or_conflicting_evidence
+spec:
+  scenario: missing_or_conflicting_evidence
+  inputArtifacts:
+    canonicalIntent: ../spec/emac.checkout.yaml
+    acceptedModel: fixtures/accepted/baseline.accepted-model.yaml
+    scenario: fixtures/evidence/missing_or_conflicting_evidence/scenario.yaml
+    traceEvidence: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml
+    deploymentDomainEvidence: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+  operatorGraph:
+    expression: Series(front, Parallel(cart, pricing), Race(paya, payb))
+    root:
+      type: series
+      steps:
+      - ref: front
+      - type: parallel
+        join: all
+        branches:
+        - ref: cart
+        - ref: pricing
+      - type: race
+        id: payment_race
+        semantics: hedged
+        branches:
+        - ref: paya
+        - ref: payb
+  topology:
+    nodes:
+    - id: front
+      type: service
+    - id: cart
+      type: service
+    - id: pricing
+      type: service
+    - id: paya
+      type: external_dependency
+    - id: payb
+      type: external_dependency
+    edges:
+    - from: front
+      to: cart
+      callType: sync
+      status: observed
+      confidence: 0.6375
+      provenance:
+      - trace_id: weak-001
+        parent_span_id: w1-front
+        span_id: w1-cart
+      - trace_id: weak-002
+        parent_span_id: w2-front
+        span_id: w2-cart
+    - from: front
+      to: pricing
+      callType: sync
+      status: observed
+      confidence: 0.6375
+      provenance:
+      - trace_id: weak-001
+        parent_span_id: w1-front
+        span_id: w1-pricing
+      - trace_id: weak-002
+        parent_span_id: w2-front
+        span_id: w2-pricing
+    - from: front
+      to: paya
+      callType: sync
+      status: observed
+      confidence: 0.6375
+      provenance:
+      - trace_id: weak-001
+        parent_span_id: w1-front
+        span_id: w1-paya
+      - trace_id: weak-002
+        parent_span_id: w2-front
+        span_id: w2-paya
+    - from: front
+      to: payb
+      callType: sync
+      status: expected_from_accepted_model_only
+      confidence: 0.2
+      provenance: []
+    edgeDiagnostics:
+      expectedEdges:
+      - front->cart
+      - front->paya
+      - front->payb
+      - front->pricing
+      observedEdges:
+      - front->cart
+      - front->paya
+      - front->pricing
+      missingEdges:
+      - front->payb
+      coverage: 0.75
+  redundancy:
+  - id: payment_race
+    pattern: race
+    semantics: hedged
+    group:
+    - paya
+    - payb
+    status: incomplete_branch_evidence
+    branchObservationFrequency:
+      paya: 1.0
+      payb: 0.0
+    overlapRatio: 0.0
+    tracesWithBothBranches: 0
+    confidence: 0.35
+    provenance:
+      traceSignal: payment spans share emac.redundancy_group=payment_race and overlap in time
+      observedPaymentTraces: 2
+  failureDomains:
+    effective:
+      front:
+      - k8s/zone:checkout-a
+      - k8s/cluster:checkout
+      cart:
+      - k8s/zone:checkout-a
+      - k8s/cluster:checkout
+      pricing:
+      - k8s/zone:checkout-a
+      - k8s/cluster:checkout
+      paya:
+      - payment-network-shared
+      payb:
+      - unknown
+    paymentRaceRelation: unknown_or_conflicting
+    details:
+      front:
+        domains:
+        - k8s/zone:checkout-a
+        - k8s/cluster:checkout
+        status: consistent
+        confidence: 0.95
+        observations:
+        - value: k8s/zone:checkout-a
+          file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+          field: services.front.labels.topology.kubernetes.io/zone
+          signal: deployment label
+        - value: k8s/cluster:checkout
+          file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+          field: services.front.cluster
+          signal: cluster inventory
+      cart:
+        domains:
+        - k8s/zone:checkout-a
+        - k8s/cluster:checkout
+        status: consistent
+        confidence: 0.95
+        observations:
+        - value: k8s/zone:checkout-a
+          file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+          field: services.cart.labels.topology.kubernetes.io/zone
+          signal: deployment label
+        - value: k8s/cluster:checkout
+          file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+          field: services.cart.cluster
+          signal: cluster inventory
+      pricing:
+        domains:
+        - k8s/zone:checkout-a
+        - k8s/cluster:checkout
+        status: consistent
+        confidence: 0.95
+        observations:
+        - value: k8s/zone:checkout-a
+          file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+          field: services.pricing.labels.topology.kubernetes.io/zone
+          signal: deployment label
+        - value: k8s/cluster:checkout
+          file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+          field: services.pricing.cluster
+          signal: cluster inventory
+      paya:
+        domains:
+        - payment-network-shared
+        status: conflicting
+        confidence: 0.575
+        alternatives:
+          payment-network-a: 1
+          payment-network-shared: 3
+        observations:
+        - value: payment-network-a
+          file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+          field: services.paya.labels.emac.dev/effective-payment-domain
+          signal: mesh service label
+        - value: payment-network-shared
+          file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+          field: services.paya.provider.network
+          signal: provider metadata
+        - value: payment-network-shared
+          file: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml
+          field: spans.w1-paya.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+        - value: payment-network-shared
+          file: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml
+          field: spans.w2-paya.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+      payb:
+        domains:
+        - unknown
+        status: missing
+        confidence: 0.2
+        observations: []
+  confidence:
+    overall: 0.350625
+    fields:
+      operatorEdges: 0.6375
+      paymentRace: 0.35
+      failureDomains: 0.2
+    evidenceFlags:
+    - incomplete_trace_coverage
+    - incomplete_payment_branch_coverage
+    - conflicting_domain_evidence:paya
+    - missing_domain_evidence:payb
+    basis:
+    - operator edges use trace parent/child span linkage
+    - payment race uses overlapping payment alternatives plus accepted intent
+    - failure domains use deployment/provider labels and payment span attributes
+  provenance:
+    operatorEdges:
+      front->cart:
+      - trace_id: weak-001
+        parent_span_id: w1-front
+        span_id: w1-cart
+      - trace_id: weak-002
+        parent_span_id: w2-front
+        span_id: w2-cart
+      front->pricing:
+      - trace_id: weak-001
+        parent_span_id: w1-front
+        span_id: w1-pricing
+      - trace_id: weak-002
+        parent_span_id: w2-front
+        span_id: w2-pricing
+      front->paya:
+      - trace_id: weak-001
+        parent_span_id: w1-front
+        span_id: w1-paya
+      - trace_id: weak-002
+        parent_span_id: w2-front
+        span_id: w2-paya
+      front->payb: []
+    failureDomains:
+      front:
+      - value: k8s/zone:checkout-a
+        file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+        field: services.front.labels.topology.kubernetes.io/zone
+        signal: deployment label
+      - value: k8s/cluster:checkout
+        file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+        field: services.front.cluster
+        signal: cluster inventory
+      cart:
+      - value: k8s/zone:checkout-a
+        file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+        field: services.cart.labels.topology.kubernetes.io/zone
+        signal: deployment label
+      - value: k8s/cluster:checkout
+        file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+        field: services.cart.cluster
+        signal: cluster inventory
+      pricing:
+      - value: k8s/zone:checkout-a
+        file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+        field: services.pricing.labels.topology.kubernetes.io/zone
+        signal: deployment label
+      - value: k8s/cluster:checkout
+        file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+        field: services.pricing.cluster
+        signal: cluster inventory
+      paya:
+      - value: payment-network-a
+        file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+        field: services.paya.labels.emac.dev/effective-payment-domain
+        signal: mesh service label
+      - value: payment-network-shared
+        file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+        field: services.paya.provider.network
+        signal: provider metadata
+      - value: payment-network-shared
+        file: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml
+        field: spans.w1-paya.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      - value: payment-network-shared
+        file: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml
+        field: spans.w2-paya.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      payb: []

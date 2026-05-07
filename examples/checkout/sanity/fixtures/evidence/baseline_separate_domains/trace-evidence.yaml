@@ -1,0 +1,140 @@
+schema: emac.sanity.trace/v1
+scenario: baseline_separate_domains
+sampling:
+  mode: deterministic
+  sampledTraces: 3
+expectedEdges:
+  - [front, cart]
+  - [front, pricing]
+  - [front, paya]
+  - [front, payb]
+spans:
+  - trace_id: baseline-001
+    span_id: b1-front
+    parent_span_id: null
+    service: front
+    operation: checkout
+    start_ms: 0
+    duration_ms: 140
+  - trace_id: baseline-001
+    span_id: b1-cart
+    parent_span_id: b1-front
+    service: cart
+    operation: get-cart
+    start_ms: 10
+    duration_ms: 35
+  - trace_id: baseline-001
+    span_id: b1-pricing
+    parent_span_id: b1-front
+    service: pricing
+    operation: quote
+    start_ms: 12
+    duration_ms: 40
+  - trace_id: baseline-001
+    span_id: b1-paya
+    parent_span_id: b1-front
+    service: paya
+    operation: authorize
+    start_ms: 70
+    duration_ms: 45
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: paya
+      emac.provider_domain: payment-network-a
+  - trace_id: baseline-001
+    span_id: b1-payb
+    parent_span_id: b1-front
+    service: payb
+    operation: authorize
+    start_ms: 72
+    duration_ms: 55
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: payb
+      emac.provider_domain: payment-network-b
+  - trace_id: baseline-002
+    span_id: b2-front
+    parent_span_id: null
+    service: front
+    operation: checkout
+    start_ms: 0
+    duration_ms: 132
+  - trace_id: baseline-002
+    span_id: b2-cart
+    parent_span_id: b2-front
+    service: cart
+    operation: get-cart
+    start_ms: 9
+    duration_ms: 34
+  - trace_id: baseline-002
+    span_id: b2-pricing
+    parent_span_id: b2-front
+    service: pricing
+    operation: quote
+    start_ms: 11
+    duration_ms: 38
+  - trace_id: baseline-002
+    span_id: b2-paya
+    parent_span_id: b2-front
+    service: paya
+    operation: authorize
+    start_ms: 68
+    duration_ms: 50
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: paya
+      emac.provider_domain: payment-network-a
+  - trace_id: baseline-002
+    span_id: b2-payb
+    parent_span_id: b2-front
+    service: payb
+    operation: authorize
+    start_ms: 69
+    duration_ms: 54
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: payb
+      emac.provider_domain: payment-network-b
+  - trace_id: baseline-003
+    span_id: b3-front
+    parent_span_id: null
+    service: front
+    operation: checkout
+    start_ms: 0
+    duration_ms: 128
+  - trace_id: baseline-003
+    span_id: b3-cart
+    parent_span_id: b3-front
+    service: cart
+    operation: get-cart
+    start_ms: 8
+    duration_ms: 35
+  - trace_id: baseline-003
+    span_id: b3-pricing
+    parent_span_id: b3-front
+    service: pricing
+    operation: quote
+    start_ms: 10
+    duration_ms: 37
+  - trace_id: baseline-003
+    span_id: b3-paya
+    parent_span_id: b3-front
+    service: paya
+    operation: authorize
+    start_ms: 66
+    duration_ms: 48
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: paya
+      emac.provider_domain: payment-network-a
+  - trace_id: baseline-003
+    span_id: b3-payb
+    parent_span_id: b3-front
+    service: payb
+    operation: authorize
+    start_ms: 67
+    duration_ms: 53
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: payb
+      emac.provider_domain: payment-network-b

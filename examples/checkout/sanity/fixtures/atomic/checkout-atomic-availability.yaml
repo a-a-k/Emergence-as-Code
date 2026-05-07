@@ -1,0 +1,33 @@
+apiVersion: emac.sanity/v1
+kind: AtomicAvailabilityInputs
+metadata:
+  name: checkout-atomic-availability
+  labels:
+    emac.example: "true"
+    emac.sanity.fixture: "true"
+    journey: checkout
+spec:
+  sourceAlignment:
+    note: >
+      Values match the existing checkout derivation report and OpenSLO targets.
+      The replay scenarios keep these local inputs unchanged so that only the
+      discovered model changes the journey-level decision.
+    derivationReportRef: "../../compiled/report/derivation.checkout.yaml"
+    openSLODirectoryRef: "../../atomic/openslo/"
+  localSloView: "unchanged/green"
+  components:
+    front:
+      availability: 0.9995
+      sourceRef: "../../atomic/openslo/slo.front.availability.yaml"
+    cart:
+      availability: 0.999
+      sourceRef: "../../atomic/openslo/slo.cart.availability.yaml"
+    pricing:
+      availability: 0.999
+      sourceRef: "../../atomic/openslo/slo.pricing.availability.yaml"
+    paya:
+      availability: 0.995
+      sourceRef: "../../atomic/openslo/slo.paya.availability.yaml"
+    payb:
+      availability: 0.995
+      sourceRef: "../../atomic/openslo/slo.payb.availability.yaml"

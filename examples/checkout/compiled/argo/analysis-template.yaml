@@ -12,9 +12,58 @@ spec:
     # Error budget for availability target=0.995 is 0.005.
     - name: error-budget
       value: "0.005"
+    - name: availability-objective
+      value: "0.995"
+    - name: max-p99-latency-seconds
+      value: "0.4"
+    - name: auto-accept-confidence
+      value: "0.8"
 
   metrics:
-    # 1) Canary burn rate over 5m (burn = error_ratio / error_budget)
+    # 1) Compiled action guard over pessimistic journey bounds and model confidence:
+    #    allow(promote) iff A_minus >= .995 && p99_U <= 400ms &&
+    #    conf(delta) >= .8 && no_unresolved_domain_conflict.
+    - name: checkout-pessimistic-availability-bound
+      interval: 1m
+      successCondition: "result[0] >= 0.995"
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: "{{args.prometheus-address}}"
+          query: |
+            journey:checkout:availability_bound{bound="pessimistic"}
+
+    - name: checkout-latency-p99-upper-bound
+      interval: 1m
+      successCondition: "result[0] <= 0.4"
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: "{{args.prometheus-address}}"
+          query: |
+            journey:checkout:latency_seconds:p99_upper_bound
+
+    - name: checkout-model-delta-confidence
+      interval: 1m
+      successCondition: "result[0] >= 0.8"
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: "{{args.prometheus-address}}"
+          query: |
+            journey:checkout:model_delta:confidence
+
+    - name: checkout-unresolved-domain-conflict
+      interval: 1m
+      successCondition: "result[0] == 0"
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: "{{args.prometheus-address}}"
+          query: |
+            journey:checkout:model:unresolved_domain_conflict
+
+    # 2) Canary burn rate over 5m (burn = error_ratio / error_budget)
     - name: checkout-canary-burnrate-5m
       interval: 1m
       successCondition: "result[0] <= 1.0"
@@ -33,7 +82,7 @@ spec:
             /
             {{args.error-budget}}
 
-    # 2) Canary p99 latency over 5m
+    # 3) Canary p99 latency over 5m
     - name: checkout-canary-latency-p99-5m
       interval: 1m
       successCondition: "result[0] <= 0.4"

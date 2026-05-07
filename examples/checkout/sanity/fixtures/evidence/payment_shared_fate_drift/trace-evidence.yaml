@@ -1,0 +1,140 @@
+schema: emac.sanity.trace/v1
+scenario: payment_shared_fate_drift
+sampling:
+  mode: deterministic
+  sampledTraces: 3
+expectedEdges:
+  - [front, cart]
+  - [front, pricing]
+  - [front, paya]
+  - [front, payb]
+spans:
+  - trace_id: drift-001
+    span_id: d1-front
+    parent_span_id: null
+    service: front
+    operation: checkout
+    start_ms: 0
+    duration_ms: 144
+  - trace_id: drift-001
+    span_id: d1-cart
+    parent_span_id: d1-front
+    service: cart
+    operation: get-cart
+    start_ms: 10
+    duration_ms: 35
+  - trace_id: drift-001
+    span_id: d1-pricing
+    parent_span_id: d1-front
+    service: pricing
+    operation: quote
+    start_ms: 12
+    duration_ms: 40
+  - trace_id: drift-001
+    span_id: d1-paya
+    parent_span_id: d1-front
+    service: paya
+    operation: authorize
+    start_ms: 70
+    duration_ms: 45
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: paya
+      emac.provider_domain: payment-network-shared
+  - trace_id: drift-001
+    span_id: d1-payb
+    parent_span_id: d1-front
+    service: payb
+    operation: authorize
+    start_ms: 71
+    duration_ms: 58
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: payb
+      emac.provider_domain: payment-network-shared
+  - trace_id: drift-002
+    span_id: d2-front
+    parent_span_id: null
+    service: front
+    operation: checkout
+    start_ms: 0
+    duration_ms: 136
+  - trace_id: drift-002
+    span_id: d2-cart
+    parent_span_id: d2-front
+    service: cart
+    operation: get-cart
+    start_ms: 9
+    duration_ms: 34
+  - trace_id: drift-002
+    span_id: d2-pricing
+    parent_span_id: d2-front
+    service: pricing
+    operation: quote
+    start_ms: 11
+    duration_ms: 38
+  - trace_id: drift-002
+    span_id: d2-paya
+    parent_span_id: d2-front
+    service: paya
+    operation: authorize
+    start_ms: 68
+    duration_ms: 49
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: paya
+      emac.provider_domain: payment-network-shared
+  - trace_id: drift-002
+    span_id: d2-payb
+    parent_span_id: d2-front
+    service: payb
+    operation: authorize
+    start_ms: 69
+    duration_ms: 55
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: payb
+      emac.provider_domain: payment-network-shared
+  - trace_id: drift-003
+    span_id: d3-front
+    parent_span_id: null
+    service: front
+    operation: checkout
+    start_ms: 0
+    duration_ms: 130
+  - trace_id: drift-003
+    span_id: d3-cart
+    parent_span_id: d3-front
+    service: cart
+    operation: get-cart
+    start_ms: 8
+    duration_ms: 35
+  - trace_id: drift-003
+    span_id: d3-pricing
+    parent_span_id: d3-front
+    service: pricing
+    operation: quote
+    start_ms: 10
+    duration_ms: 37
+  - trace_id: drift-003
+    span_id: d3-paya
+    parent_span_id: d3-front
+    service: paya
+    operation: authorize
+    start_ms: 66
+    duration_ms: 48
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: paya
+      emac.provider_domain: payment-network-shared
+  - trace_id: drift-003
+    span_id: d3-payb
+    parent_span_id: d3-front
+    service: payb
+    operation: authorize
+    start_ms: 67
+    duration_ms: 53
+    attributes:
+      emac.redundancy_group: payment_race
+      emac.branch: payb
+      emac.provider_domain: payment-network-shared

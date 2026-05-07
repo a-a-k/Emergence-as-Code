@@ -54,29 +54,69 @@ spec:
     front:
       kind: service
       atomicSLORef: "openslo:slo.front.availability"
+      telemetry:
+        span:
+          service: front
+          operation: "POST /checkout"
+        metrics:
+          availabilityGood: 'http_requests_total{service="front",code=~"2..|3.."}'
+          availabilityTotal: 'http_requests_total{service="front"}'
+          latencyHistogram: 'http_request_duration_seconds_bucket{service="front"}'
       failureDomains:
         - "k8s/zone"
         - "k8s/cluster"
     cart:
       kind: service
       atomicSLORef: "openslo:slo.cart.availability"
+      telemetry:
+        span:
+          service: cart
+          operation: "GET /cart"
+        metrics:
+          availabilityGood: 'http_requests_total{service="cart",code=~"2..|3.."}'
+          availabilityTotal: 'http_requests_total{service="cart"}'
+          latencyHistogram: 'http_request_duration_seconds_bucket{service="cart"}'
       failureDomains:
         - "k8s/zone"
         - "k8s/cluster"
     pricing:
       kind: service
       atomicSLORef: "openslo:slo.pricing.availability"
+      telemetry:
+        span:
+          service: pricing
+          operation: "POST /pricing/quote"
+        metrics:
+          availabilityGood: 'http_requests_total{service="pricing",code=~"2..|3.."}'
+          availabilityTotal: 'http_requests_total{service="pricing"}'
+          latencyHistogram: 'http_request_duration_seconds_bucket{service="pricing"}'
       failureDomains:
         - "k8s/zone"
         - "k8s/cluster"
     paya:
       kind: external_dependency
       atomicSLORef: "openslo:slo.paya.availability"
+      telemetry:
+        span:
+          service: paya
+          operation: "POST /payA"
+        metrics:
+          availabilityGood: 'payment_requests_total{provider="paya",result="success"}'
+          availabilityTotal: 'payment_requests_total{provider="paya"}'
+          latencyHistogram: 'paya_request_duration_seconds_bucket'
       failureDomains:
         - "payment-network"
     payb:
       kind: external_dependency
       atomicSLORef: "openslo:slo.payb.availability"
+      telemetry:
+        span:
+          service: payb
+          operation: "POST /payB"
+        metrics:
+          availabilityGood: 'payment_requests_total{provider="payb",result="success"}'
+          availabilityTotal: 'payment_requests_total{provider="payb"}'
+          latencyHistogram: 'payb_request_duration_seconds_bucket'
       failureDomains:
         - "payment-network"
 
@@ -84,6 +124,12 @@ spec:
   evidence:
     modelDiscovery:
       enabled: true
+      evidenceWindow: 30d
+      freshness:
+        maxAge: 1h
+      coveragePolicy:
+        minTraceEdgeCoverage: 0.80
+        requirePaymentBranchCoverage: true
       # The discovery output is treated as an input artifact, with confidence.
       discoveredModelRef: "../model_discovery/discovered.checkout.yaml"
       inputs:
@@ -139,3 +185,16 @@ spec:
         # Example: promote only if canary burn rate < 1 and p99 latency stays below threshold.
         maxCanaryBurnRate: 1.0
         maxP99LatencySeconds: 0.4
+
+    actions:
+      - kind: promote
+        guard: "A_minus >= 0.995 && p99_U <= 0.4 && conf(delta) >= 0.8 && no_unresolved_domain_conflict"
+        parameterBounds:
+          maxTrafficStep: 0.50
+          maxConcurrentRollouts: 1
+        rollback:
+          onGuardViolation: true
+          action: rollback
+        rateLimit:
+          maxActions: 1
+          window: 10m

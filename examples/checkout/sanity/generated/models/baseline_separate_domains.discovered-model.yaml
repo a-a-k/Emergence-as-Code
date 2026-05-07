@@ -1,0 +1,378 @@
+apiVersion: emac.sanity/v1
+kind: DiscoveredJourneyModel
+metadata:
+  name: checkout-baseline_separate_domains
+  labels:
+    emac.example: 'true'
+    emac.sanity.generated: 'true'
+    journey: checkout
+    scenario: baseline_separate_domains
+spec:
+  scenario: baseline_separate_domains
+  inputArtifacts:
+    canonicalIntent: ../spec/emac.checkout.yaml
+    acceptedModel: fixtures/accepted/baseline.accepted-model.yaml
+    scenario: fixtures/evidence/baseline_separate_domains/scenario.yaml
+    traceEvidence: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+    deploymentDomainEvidence: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+  operatorGraph:
+    expression: Series(front, Parallel(cart, pricing), Race(paya, payb))
+    root:
+      type: series
+      steps:
+      - ref: front
+      - type: parallel
+        join: all
+        branches:
+        - ref: cart
+        - ref: pricing
+      - type: race
+        id: payment_race
+        semantics: hedged
+        branches:
+        - ref: paya
+        - ref: payb
+  topology:
+    nodes:
+    - id: front
+      type: service
+    - id: cart
+      type: service
+    - id: pricing
+      type: service
+    - id: paya
+      type: external_dependency
+    - id: payb
+      type: external_dependency
+    edges:
+    - from: front
+      to: cart
+      callType: sync
+      status: observed
+      confidence: 0.95
+      provenance:
+      - trace_id: baseline-001
+        parent_span_id: b1-front
+        span_id: b1-cart
+      - trace_id: baseline-002
+        parent_span_id: b2-front
+        span_id: b2-cart
+      - trace_id: baseline-003
+        parent_span_id: b3-front
+        span_id: b3-cart
+    - from: front
+      to: pricing
+      callType: sync
+      status: observed
+      confidence: 0.95
+      provenance:
+      - trace_id: baseline-001
+        parent_span_id: b1-front
+        span_id: b1-pricing
+      - trace_id: baseline-002
+        parent_span_id: b2-front
+        span_id: b2-pricing
+      - trace_id: baseline-003
+        parent_span_id: b3-front
+        span_id: b3-pricing
+    - from: front
+      to: paya
+      callType: sync
+      status: observed
+      confidence: 0.95
+      provenance:
+      - trace_id: baseline-001
+        parent_span_id: b1-front
+        span_id: b1-paya
+      - trace_id: baseline-002
+        parent_span_id: b2-front
+        span_id: b2-paya
+      - trace_id: baseline-003
+        parent_span_id: b3-front
+        span_id: b3-paya
+    - from: front
+      to: payb
+      callType: sync
+      status: observed
+      confidence: 0.95
+      provenance:
+      - trace_id: baseline-001
+        parent_span_id: b1-front
+        span_id: b1-payb
+      - trace_id: baseline-002
+        parent_span_id: b2-front
+        span_id: b2-payb
+      - trace_id: baseline-003
+        parent_span_id: b3-front
+        span_id: b3-payb
+    edgeDiagnostics:
+      expectedEdges:
+      - front->cart
+      - front->paya
+      - front->payb
+      - front->pricing
+      observedEdges:
+      - front->cart
+      - front->paya
+      - front->payb
+      - front->pricing
+      missingEdges: []
+      coverage: 1.0
+  redundancy:
+  - id: payment_race
+    pattern: race
+    semantics: hedged
+    group:
+    - paya
+    - payb
+    status: trace_and_intent_agree
+    branchObservationFrequency:
+      paya: 1.0
+      payb: 1.0
+    overlapRatio: 1.0
+    tracesWithBothBranches: 3
+    confidence: 0.95
+    provenance:
+      traceSignal: payment spans share emac.redundancy_group=payment_race and overlap in time
+      observedPaymentTraces: 3
+  failureDomains:
+    effective:
+      front:
+      - k8s/zone:checkout-a
+      - k8s/cluster:checkout
+      cart:
+      - k8s/zone:checkout-a
+      - k8s/cluster:checkout
+      pricing:
+      - k8s/zone:checkout-a
+      - k8s/cluster:checkout
+      paya:
+      - payment-network-a
+      payb:
+      - payment-network-b
+    paymentRaceRelation: separate_effective_domains
+    details:
+      front:
+        domains:
+        - k8s/zone:checkout-a
+        - k8s/cluster:checkout
+        status: consistent
+        confidence: 0.95
+        observations:
+        - value: k8s/zone:checkout-a
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.front.labels.topology.kubernetes.io/zone
+          signal: deployment label
+        - value: k8s/cluster:checkout
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.front.cluster
+          signal: cluster inventory
+      cart:
+        domains:
+        - k8s/zone:checkout-a
+        - k8s/cluster:checkout
+        status: consistent
+        confidence: 0.95
+        observations:
+        - value: k8s/zone:checkout-a
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.cart.labels.topology.kubernetes.io/zone
+          signal: deployment label
+        - value: k8s/cluster:checkout
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.cart.cluster
+          signal: cluster inventory
+      pricing:
+        domains:
+        - k8s/zone:checkout-a
+        - k8s/cluster:checkout
+        status: consistent
+        confidence: 0.95
+        observations:
+        - value: k8s/zone:checkout-a
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.pricing.labels.topology.kubernetes.io/zone
+          signal: deployment label
+        - value: k8s/cluster:checkout
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.pricing.cluster
+          signal: cluster inventory
+      paya:
+        domains:
+        - payment-network-a
+        status: consistent
+        confidence: 0.95
+        alternatives:
+          payment-network-a: 5
+        observations:
+        - value: payment-network-a
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.paya.labels.emac.dev/effective-payment-domain
+          signal: mesh service label
+        - value: payment-network-a
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.paya.provider.network
+          signal: provider metadata
+        - value: payment-network-a
+          file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+          field: spans.b1-paya.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+        - value: payment-network-a
+          file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+          field: spans.b2-paya.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+        - value: payment-network-a
+          file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+          field: spans.b3-paya.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+      payb:
+        domains:
+        - payment-network-b
+        status: consistent
+        confidence: 0.95
+        alternatives:
+          payment-network-b: 5
+        observations:
+        - value: payment-network-b
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.payb.labels.emac.dev/effective-payment-domain
+          signal: mesh service label
+        - value: payment-network-b
+          file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+          field: services.payb.provider.network
+          signal: provider metadata
+        - value: payment-network-b
+          file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+          field: spans.b1-payb.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+        - value: payment-network-b
+          file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+          field: spans.b2-payb.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+        - value: payment-network-b
+          file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+          field: spans.b3-payb.attributes.emac.provider_domain
+          signal: trace payment-domain attribute
+  confidence:
+    overall: 0.95
+    fields:
+      operatorEdges: 0.95
+      paymentRace: 0.95
+      failureDomains: 0.95
+    evidenceFlags: []
+    basis:
+    - operator edges use trace parent/child span linkage
+    - payment race uses overlapping payment alternatives plus accepted intent
+    - failure domains use deployment/provider labels and payment span attributes
+  provenance:
+    operatorEdges:
+      front->cart:
+      - trace_id: baseline-001
+        parent_span_id: b1-front
+        span_id: b1-cart
+      - trace_id: baseline-002
+        parent_span_id: b2-front
+        span_id: b2-cart
+      - trace_id: baseline-003
+        parent_span_id: b3-front
+        span_id: b3-cart
+      front->pricing:
+      - trace_id: baseline-001
+        parent_span_id: b1-front
+        span_id: b1-pricing
+      - trace_id: baseline-002
+        parent_span_id: b2-front
+        span_id: b2-pricing
+      - trace_id: baseline-003
+        parent_span_id: b3-front
+        span_id: b3-pricing
+      front->paya:
+      - trace_id: baseline-001
+        parent_span_id: b1-front
+        span_id: b1-paya
+      - trace_id: baseline-002
+        parent_span_id: b2-front
+        span_id: b2-paya
+      - trace_id: baseline-003
+        parent_span_id: b3-front
+        span_id: b3-paya
+      front->payb:
+      - trace_id: baseline-001
+        parent_span_id: b1-front
+        span_id: b1-payb
+      - trace_id: baseline-002
+        parent_span_id: b2-front
+        span_id: b2-payb
+      - trace_id: baseline-003
+        parent_span_id: b3-front
+        span_id: b3-payb
+    failureDomains:
+      front:
+      - value: k8s/zone:checkout-a
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.front.labels.topology.kubernetes.io/zone
+        signal: deployment label
+      - value: k8s/cluster:checkout
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.front.cluster
+        signal: cluster inventory
+      cart:
+      - value: k8s/zone:checkout-a
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.cart.labels.topology.kubernetes.io/zone
+        signal: deployment label
+      - value: k8s/cluster:checkout
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.cart.cluster
+        signal: cluster inventory
+      pricing:
+      - value: k8s/zone:checkout-a
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.pricing.labels.topology.kubernetes.io/zone
+        signal: deployment label
+      - value: k8s/cluster:checkout
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.pricing.cluster
+        signal: cluster inventory
+      paya:
+      - value: payment-network-a
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.paya.labels.emac.dev/effective-payment-domain
+        signal: mesh service label
+      - value: payment-network-a
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.paya.provider.network
+        signal: provider metadata
+      - value: payment-network-a
+        file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+        field: spans.b1-paya.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      - value: payment-network-a
+        file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+        field: spans.b2-paya.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      - value: payment-network-a
+        file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+        field: spans.b3-paya.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      payb:
+      - value: payment-network-b
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.payb.labels.emac.dev/effective-payment-domain
+        signal: mesh service label
+      - value: payment-network-b
+        file: fixtures/evidence/baseline_separate_domains/deployment-domains.yaml
+        field: services.payb.provider.network
+        signal: provider metadata
+      - value: payment-network-b
+        file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+        field: spans.b1-payb.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      - value: payment-network-b
+        file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+        field: spans.b2-payb.attributes.emac.provider_domain
+        signal: trace payment-domain attribute
+      - value: payment-network-b
+        file: fixtures/evidence/baseline_separate_domains/trace-evidence.yaml
+        field: spans.b3-payb.attributes.emac.provider_domain
+        signal: trace payment-domain attribute

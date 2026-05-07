@@ -1,0 +1,36 @@
+apiVersion: emac.sanity/v1
+kind: SanityReplayPolicy
+metadata:
+  name: checkout-sanity-policy
+  labels:
+    emac.example: "true"
+    emac.sanity.fixture: "true"
+    journey: checkout
+spec:
+  objectiveAvailability: 0.995
+  evidenceWindow: 30d
+  autoAcceptConfidence: 0.80
+  highImpactDeltaThreshold: 0.001
+  governance:
+    passRequires:
+      - "A_minus >= objectiveAvailability"
+      - "overallConfidence >= autoAcceptConfidence"
+      - "no unresolved high-impact model delta"
+      - "no incomplete or conflicting evidence flags"
+    reviewWhen:
+      - "overallConfidence < autoAcceptConfidence"
+      - "evidence is incomplete or conflicting"
+      - "declared intent and inferred evidence disagree"
+      - "high-impact model delta requires operator review"
+    failWhen:
+      - "A_minus < objectiveAvailability and confidence is sufficient"
+  compilation:
+    racePessimisticRules:
+      separateKnownDomains: "use independent race formula"
+      sharedEffectiveDomain: "collapse race to best single alternative"
+      unknownOrConflictingDomain: "collapse race to best single alternative and require REVIEW"
+    formulas:
+      series: "multiply required stages"
+      parallelJoinAll: "multiply all branches"
+      raceOptimistic: "1 - (1 - A_paya) * (1 - A_payb)"
+      racePessimisticShared: "max(A_paya, A_payb)"

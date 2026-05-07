@@ -1,0 +1,48 @@
+schema: emac.sanity.deployment/v1
+scenario: payment_shared_fate_drift
+services:
+  front:
+    type: service
+    domain_observations:
+      - field: "services.front.labels.topology.kubernetes.io/zone"
+        value: "k8s/zone:checkout-a"
+        signal: "deployment label"
+      - field: "services.front.cluster"
+        value: "k8s/cluster:checkout"
+        signal: "cluster inventory"
+  cart:
+    type: service
+    domain_observations:
+      - field: "services.cart.labels.topology.kubernetes.io/zone"
+        value: "k8s/zone:checkout-a"
+        signal: "deployment label"
+      - field: "services.cart.cluster"
+        value: "k8s/cluster:checkout"
+        signal: "cluster inventory"
+  pricing:
+    type: service
+    domain_observations:
+      - field: "services.pricing.labels.topology.kubernetes.io/zone"
+        value: "k8s/zone:checkout-a"
+        signal: "deployment label"
+      - field: "services.pricing.cluster"
+        value: "k8s/cluster:checkout"
+        signal: "cluster inventory"
+  paya:
+    type: external_dependency
+    domain_observations:
+      - field: "services.paya.labels.emac.dev/effective-payment-domain"
+        value: "payment-network-shared"
+        signal: "mesh service label"
+      - field: "services.paya.provider.network"
+        value: "payment-network-shared"
+        signal: "provider metadata"
+  payb:
+    type: external_dependency
+    domain_observations:
+      - field: "services.payb.labels.emac.dev/effective-payment-domain"
+        value: "payment-network-shared"
+        signal: "mesh service label"
+      - field: "services.payb.provider.network"
+        value: "payment-network-shared"
+        signal: "provider metadata"

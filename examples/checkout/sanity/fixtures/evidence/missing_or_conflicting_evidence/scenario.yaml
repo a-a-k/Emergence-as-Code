@@ -1,0 +1,17 @@
+apiVersion: emac.sanity/v1
+kind: ReplayScenario
+metadata:
+  name: missing_or_conflicting_evidence
+  labels:
+    emac.sanity.fixture: "true"
+    journey: checkout
+spec:
+  purpose: "confidence-gated reconciliation under weak instrumentation"
+  localSloInputRef: "../../atomic/checkout-atomic-availability.yaml"
+  traceEvidenceRef: "trace-evidence.yaml"
+  deploymentEvidenceRef: "deployment-domains.yaml"
+  expectedDiscoveryResult: "partial payment evidence with conflicting domain signals"
+  expectedGovernanceDecision: "REVIEW"
+  notes:
+    - "Traces miss payb and domain metadata is inconsistent for paya."
+    - "The compiler remains usable for analysis, but governance must not auto-pass."

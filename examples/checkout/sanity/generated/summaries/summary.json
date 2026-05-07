@@ -1,0 +1,78 @@
+{
+  "apiVersion": "emac.sanity/v1",
+  "kind": "SanityReplaySummary",
+  "metadata": {
+    "name": "checkout-model-discovery-replay",
+    "labels": {
+      "emac.example": "true",
+      "emac.sanity.generated": "true",
+      "journey": "checkout"
+    }
+  },
+  "spec": {
+    "canonicalIntent": "../spec/emac.checkout.yaml",
+    "acceptedModel": "fixtures/accepted/baseline.accepted-model.yaml",
+    "policy": {
+      "objectiveAvailability": 0.995,
+      "evidenceWindow": "30d",
+      "autoAcceptConfidence": 0.8,
+      "highImpactDeltaThreshold": 0.001
+    },
+    "formulaNotes": {
+      "racePessimisticRules": {
+        "separateKnownDomains": "use independent race formula",
+        "sharedEffectiveDomain": "collapse race to best single alternative",
+        "unknownOrConflictingDomain": "collapse race to best single alternative and require REVIEW"
+      },
+      "formulas": {
+        "series": "multiply required stages",
+        "parallelJoinAll": "multiply all branches",
+        "raceOptimistic": "1 - (1 - A_paya) * (1 - A_payb)",
+        "racePessimisticShared": "max(A_paya, A_payb)"
+      }
+    },
+    "scenarios": [
+      {
+        "scenario": "baseline_separate_domains",
+        "localSloView": "unchanged/green",
+        "modelDiscoveryResult": "separate payment domains",
+        "A_plus": 0.99747706,
+        "A_minus": 0.99747706,
+        "bound_width": 0.0,
+        "confidence": 0.95,
+        "decision": "PASS",
+        "paymentRaceRelation": "separate_effective_domains",
+        "evidenceFlags": []
+      },
+      {
+        "scenario": "payment_shared_fate_drift",
+        "localSloView": "unchanged/green",
+        "modelDiscoveryResult": "shared payment domain delta",
+        "A_plus": 0.99747706,
+        "A_minus": 0.99251449,
+        "bound_width": 0.00496257,
+        "confidence": 0.95,
+        "decision": "FAIL",
+        "paymentRaceRelation": "shared_effective_domain",
+        "evidenceFlags": []
+      },
+      {
+        "scenario": "missing_or_conflicting_evidence",
+        "localSloView": "unchanged/green",
+        "modelDiscoveryResult": "low-confidence model delta",
+        "A_plus": 0.99747706,
+        "A_minus": 0.99251449,
+        "bound_width": 0.00496257,
+        "confidence": 0.350625,
+        "decision": "REVIEW",
+        "paymentRaceRelation": "unknown_or_conflicting",
+        "evidenceFlags": [
+          "incomplete_trace_coverage",
+          "incomplete_payment_branch_coverage",
+          "conflicting_domain_evidence:paya",
+          "missing_domain_evidence:payb"
+        ]
+      }
+    ]
+  }
+}

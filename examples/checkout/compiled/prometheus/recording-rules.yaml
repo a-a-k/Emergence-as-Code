@@ -45,3 +45,53 @@ spec:
               0.99,
               sum(rate(journey_latency_seconds_bucket{journey="checkout"}[5m])) by (le)
             )
+
+    - name: emac.checkout.synthetic-sli
+      rules:
+        # Synthetic compiler outputs for the illustrative shared-fate checkout model.
+        # These constants mirror compiled/report/derivation.checkout.yaml and make the
+        # action guard inspectable without requiring a live Model Discovery controller.
+        - record: journey:checkout:availability_bound
+          labels:
+            bound: optimistic
+            operator_path: "Series(front,Parallel(cart,pricing),Race(paya,payb))"
+            evidence_window: 30d
+            domain_assumption: "independent payment alternatives"
+          expr: vector(0.99747706)
+        - record: journey:checkout:availability_bound
+          labels:
+            bound: pessimistic
+            operator_path: "Series(front,Parallel(cart,pricing),Race(paya,payb))"
+            evidence_window: 30d
+            domain_assumption: "payment-network shared fate"
+          expr: vector(0.99251449)
+        - record: journey:checkout:availability_bound_width
+          labels:
+            operator_path: "Series(front,Parallel(cart,pricing),Race(paya,payb))"
+            evidence_window: 30d
+            domain_assumption: "payment-network shared fate"
+          expr: vector(0.00496257)
+        - record: journey:checkout:latency_seconds:p99_upper_bound
+          labels:
+            operator_path: "Series(front,Parallel(cart,pricing),Race(paya,payb))"
+            evidence_window: 30d
+          expr: vector(0.4)
+        - record: journey:checkout:model_delta:confidence
+          labels:
+            source: "../model_discovery/discovered.checkout.yaml"
+            evidence_window: 30d
+          expr: vector(0.78)
+        - record: journey:checkout:model:unresolved_domain_conflict
+          labels:
+            source: "../model_discovery/discovered.checkout.yaml"
+          expr: vector(0)
+        - record: journey:checkout:contributor
+          labels:
+            contributor: payment_network_shared_fate
+            kind: payment_race_loss
+          expr: vector(0.004975)
+        - record: journey:checkout:contributor
+          labels:
+            contributor: objective_violation
+            kind: pessimistic_shortfall
+          expr: vector(0.00248551)

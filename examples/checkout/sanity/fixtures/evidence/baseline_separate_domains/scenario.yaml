@@ -1,0 +1,17 @@
+apiVersion: emac.sanity/v1
+kind: ReplayScenario
+metadata:
+  name: baseline_separate_domains
+  labels:
+    emac.sanity.fixture: "true"
+    journey: checkout
+spec:
+  purpose: "local SLOs green and journey gate passes"
+  localSloInputRef: "../../atomic/checkout-atomic-availability.yaml"
+  traceEvidenceRef: "trace-evidence.yaml"
+  deploymentEvidenceRef: "deployment-domains.yaml"
+  expectedDiscoveryResult: "payment alternatives remain in separate effective domains"
+  expectedGovernanceDecision: "PASS"
+  notes:
+    - "This is the accepted replay baseline, not the canonical shared-fate checkout spec."
+    - "Atomic availability inputs are unchanged across all replay scenarios."

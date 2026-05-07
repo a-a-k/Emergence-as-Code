@@ -1,0 +1,90 @@
+apiVersion: emac.sanity/v1
+kind: ModelDelta
+metadata:
+  name: checkout-payment_shared_fate_drift
+  labels:
+    emac.example: 'true'
+    emac.sanity.generated: 'true'
+    journey: checkout
+    scenario: payment_shared_fate_drift
+spec:
+  scenario: payment_shared_fate_drift
+  comparedToAcceptedModel: fixtures/accepted/baseline.accepted-model.yaml
+  discoveredModel: generated/models/payment_shared_fate_drift.discovered-model.yaml
+  changes:
+  - type: failure_domain_assignment
+    component: paya
+    before:
+    - payment-network-a
+    after:
+    - payment-network-shared
+    status: consistent
+    confidence: 0.95
+    provenance:
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+      field: services.paya.labels.emac.dev/effective-payment-domain
+      signal: mesh service label
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+      field: services.paya.provider.network
+      signal: provider metadata
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+      field: spans.d1-paya.attributes.emac.provider_domain
+      signal: trace payment-domain attribute
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+      field: spans.d2-paya.attributes.emac.provider_domain
+      signal: trace payment-domain attribute
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+      field: spans.d3-paya.attributes.emac.provider_domain
+      signal: trace payment-domain attribute
+  - type: failure_domain_assignment
+    component: payb
+    before:
+    - payment-network-b
+    after:
+    - payment-network-shared
+    status: consistent
+    confidence: 0.95
+    provenance:
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+      field: services.payb.labels.emac.dev/effective-payment-domain
+      signal: mesh service label
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/deployment-domains.yaml
+      field: services.payb.provider.network
+      signal: provider metadata
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+      field: spans.d1-payb.attributes.emac.provider_domain
+      signal: trace payment-domain attribute
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+      field: spans.d2-payb.attributes.emac.provider_domain
+      signal: trace payment-domain attribute
+    - value: payment-network-shared
+      file: fixtures/evidence/payment_shared_fate_drift/trace-evidence.yaml
+      field: spans.d3-payb.attributes.emac.provider_domain
+      signal: trace payment-domain attribute
+  - type: payment_race_domain_relation
+    group:
+    - paya
+    - payb
+    before: separate_effective_domains
+    after: shared_effective_domain
+    predictedImpactOnA_minus:
+      acceptedA_minus: 0.99747706
+      discoveredA_minus: 0.99251449
+      delta: -0.00496257
+      highImpactThreshold: 0.001
+      classification: high
+  summary:
+    hasHighImpactDelta: true
+    A_minusBefore: 0.99747706
+    A_minusAfter: 0.99251449
+    A_minusDelta: -0.00496257
+    governanceImplication: requires conservative gate evaluation

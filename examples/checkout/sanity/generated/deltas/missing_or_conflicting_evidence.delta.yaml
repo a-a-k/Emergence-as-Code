@@ -1,0 +1,66 @@
+apiVersion: emac.sanity/v1
+kind: ModelDelta
+metadata:
+  name: checkout-missing_or_conflicting_evidence
+  labels:
+    emac.example: 'true'
+    emac.sanity.generated: 'true'
+    journey: checkout
+    scenario: missing_or_conflicting_evidence
+spec:
+  scenario: missing_or_conflicting_evidence
+  comparedToAcceptedModel: fixtures/accepted/baseline.accepted-model.yaml
+  discoveredModel: generated/models/missing_or_conflicting_evidence.discovered-model.yaml
+  changes:
+  - type: failure_domain_assignment
+    component: paya
+    before:
+    - payment-network-a
+    after:
+    - payment-network-shared
+    status: conflicting
+    confidence: 0.575
+    provenance:
+    - value: payment-network-a
+      file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+      field: services.paya.labels.emac.dev/effective-payment-domain
+      signal: mesh service label
+    - value: payment-network-shared
+      file: fixtures/evidence/missing_or_conflicting_evidence/deployment-domains.yaml
+      field: services.paya.provider.network
+      signal: provider metadata
+    - value: payment-network-shared
+      file: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml
+      field: spans.w1-paya.attributes.emac.provider_domain
+      signal: trace payment-domain attribute
+    - value: payment-network-shared
+      file: fixtures/evidence/missing_or_conflicting_evidence/trace-evidence.yaml
+      field: spans.w2-paya.attributes.emac.provider_domain
+      signal: trace payment-domain attribute
+  - type: failure_domain_assignment
+    component: payb
+    before:
+    - payment-network-b
+    after:
+    - unknown
+    status: missing
+    confidence: 0.2
+    provenance: []
+  - type: payment_race_domain_relation
+    group:
+    - paya
+    - payb
+    before: separate_effective_domains
+    after: unknown_or_conflicting
+    predictedImpactOnA_minus:
+      acceptedA_minus: 0.99747706
+      discoveredA_minus: 0.99251449
+      delta: -0.00496257
+      highImpactThreshold: 0.001
+      classification: high
+  summary:
+    hasHighImpactDelta: true
+    A_minusBefore: 0.99747706
+    A_minusAfter: 0.99251449
+    A_minusDelta: -0.00496257
+    governanceImplication: requires conservative gate evaluation

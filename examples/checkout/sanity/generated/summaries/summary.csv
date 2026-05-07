@@ -1,0 +1,4 @@
+scenario,localSloView,modelDiscoveryResult,A_plus,A_minus,bound_width,confidence,decision,paymentRaceRelation,evidenceFlags
+baseline_separate_domains,unchanged/green,separate payment domains,0.99747706,0.99747706,0.0,0.95,PASS,separate_effective_domains,
+payment_shared_fate_drift,unchanged/green,shared payment domain delta,0.99747706,0.99251449,0.00496257,0.95,FAIL,shared_effective_domain,
+missing_or_conflicting_evidence,unchanged/green,low-confidence model delta,0.99747706,0.99251449,0.00496257,0.350625,REVIEW,unknown_or_conflicting,incomplete_trace_coverage;incomplete_payment_branch_coverage;conflicting_domain_evidence:paya;missing_domain_evidence:payb

@@ -1,0 +1,86 @@
+apiVersion: emac.sanity/v1
+kind: AcceptedJourneyModel
+metadata:
+  name: checkout-baseline-separate-domains
+  labels:
+    emac.example: "true"
+    emac.sanity.fixture: "true"
+    journey: checkout
+spec:
+  relationToCanonicalExample:
+    canonicalIntentRef: "../../../spec/emac.checkout.yaml"
+    canonicalDerivationRef: "../../../compiled/report/derivation.checkout.yaml"
+    note: >
+      This is a replay fixture, not the canonical source of truth. The canonical
+      checkout example declares a shared payment-network domain for paya and
+      payb. This accepted model represents the last accepted model before a
+      drift replay, where payment alternatives were assumed to be in separate
+      effective domains.
+  operatorGraph:
+    expression: "Series(front, Parallel(cart, pricing), Race(paya, payb))"
+    root:
+      type: series
+      steps:
+        - ref: front
+        - type: parallel
+          join: all
+          branches:
+            - ref: cart
+            - ref: pricing
+        - type: race
+          id: payment_race
+          semantics: hedged
+          branches:
+            - ref: paya
+            - ref: payb
+  topology:
+    nodes:
+      - id: front
+        type: service
+      - id: cart
+        type: service
+      - id: pricing
+        type: service
+      - id: paya
+        type: external_dependency
+      - id: payb
+        type: external_dependency
+    edges:
+      - from: front
+        to: cart
+        callType: sync
+      - from: front
+        to: pricing
+        callType: sync
+      - from: front
+        to: paya
+        callType: sync
+      - from: front
+        to: payb
+        callType: sync
+  redundancy:
+    - id: payment_race
+      pattern: race
+      group: [paya, payb]
+      semantics: hedged
+      expectedOverlap: true
+  failureDomains:
+    effective:
+      front: ["k8s/cluster:checkout", "k8s/zone:checkout-a"]
+      cart: ["k8s/cluster:checkout", "k8s/zone:checkout-a"]
+      pricing: ["k8s/cluster:checkout", "k8s/zone:checkout-a"]
+      paya: ["payment-network-a"]
+      payb: ["payment-network-b"]
+    paymentRaceRelation: separate_effective_domains
+  confidence:
+    overall: 0.90
+    fields:
+      operatorGraph: 0.95
+      redundancy: 0.90
+      failureDomains: 0.90
+    basis:
+      - "Accepted replay fixture representing the pre-drift payment model."
+      - "Canonical checkout spec remains the shared-fate risk case."
+  provenance:
+    acceptedBy: "replay-fixture"
+    source: "examples/checkout/sanity/fixtures/accepted/baseline.accepted-model.yaml"
